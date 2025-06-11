@@ -198,6 +198,13 @@ async def getPage(docId: str, pageIdOrName: str) -> Any:
     return await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}")
 
 
+class PageContentUpdate(TypedDict):
+    """Page content update."""
+
+    insertionMode: Literal["append", "replace"]
+    canvasContent: CanvasContent
+
+
 @mcp.tool()
 async def updatePage(
     docId: str,
@@ -207,9 +214,30 @@ async def updatePage(
     iconName: str | None = None,
     imageUrl: str | None = None,
     isHidden: bool | None = None,
-    contentUpdate: dict[str, Any] | None = None,
+    contentUpdate: PageContentUpdate | None = None,
 ) -> Any:
-    """Update properties of a page."""
+    """Update properties of a page.
+
+    Args:
+        docId: The ID of the doc.
+        pageIdOrName: The ID or name of the page.
+        name: Name of the page.
+        subtitle: Subtitle of the page.
+        iconName: Name of the icon.
+        imageUrl: URL of the cover image.
+        isHidden: Whether the page is hidden.
+        contentUpdate: Content update payload, e.g.:
+            {
+                "insertionMode": "append",
+                "canvasContent": {
+                    "format": "html",
+                    "content": "<p><b>This</b> is rich text</p>"
+                }
+            }
+
+    Returns:
+        API response from Coda.
+    """
     data: dict[str, Any] = {}
     if name is not None:
         data["name"] = name
@@ -244,13 +272,49 @@ async def beginPageContentExport(
 
 
 @mcp.tool()
-async def getPageContentExportStatus(
+async def createPage(
     docId: str,
-    pageIdOrName: str,
-    requestId: str,
+    name: str,
+    subtitle: str | None = None,
+    iconName: str | None = None,
+    imageUrl: str | None = None,
+    parentPageId: str | None = None,
+    pageContent: PageContent | None = None,
 ) -> Any:
-    """Check the status of a page content export."""
-    return await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}/export/{requestId}")
+    """Create a new page in a doc.
+
+    Args:
+        docId: The ID of the doc.
+        name: Name of the page.
+        subtitle: Subtitle of the page.
+        iconName: Name of the icon.
+        imageUrl: URL of the cover image.
+        parentPageId: The ID of this new page's parent, if creating a subpage.
+        pageContent: Content to initialize the page with (rich text or embed), e.g.:
+            {
+                "type": "canvas",
+                "canvasContent": {
+                    "format": "html",
+                    "content": "<p><b>This</b> is rich text</p>"
+                }
+            }
+
+    Returns:
+        API response from Coda.
+    """
+    data: dict[str, Any] = {"name": name}
+    if subtitle is not None:
+        data["subtitle"] = subtitle
+    if iconName is not None:
+        data["iconName"] = iconName
+    if imageUrl is not None:
+        data["imageUrl"] = imageUrl
+    if parentPageId is not None:
+        data["parentPageId"] = parentPageId
+    if pageContent is not None:
+        data["pageContent"] = pageContent
+
+    return await client.request(Method.POST, f"docs/{docId}/pages", json=data)
 
 
 def main() -> None:
