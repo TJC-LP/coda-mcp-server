@@ -34,7 +34,6 @@ jobs:
       uses: pyupio/safety-action@v1
       with:
         api-key: ${{ secrets.SAFETY_API_KEY }}
-        continue-on-error: false
     
     - name: Run Bandit security linter
       run: |
