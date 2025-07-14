@@ -18,6 +18,9 @@ repos:
           - aiohttp>=3.12.12
           - requests>=2.32.4
           - types-requests
+          - pytest>=8.4.1
+          - pytest-asyncio>=1.0.0
+          - aioresponses>=0.7.6
 
   # Upgrade Python syntax
   - repo: https://github.com/asottile/pyupgrade
