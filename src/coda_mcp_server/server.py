@@ -4,11 +4,12 @@ import asyncio
 import json
 import os
 from enum import StrEnum
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, cast
 
 import aiohttp
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+from typing_extensions import TypedDict
 
 
 def clean_params(params: dict[str, Any]) -> dict[str, Any]:
@@ -58,8 +59,9 @@ class CodaClient:
                         error_data = None
                         try:
                             error_data = await response.json()
-                        except Exception:
-                            pass
+                        except (json.JSONDecodeError, aiohttp.ContentTypeError):
+                            # Response body is not valid JSON, which is expected for some error responses
+                            error_data = None
 
                         error_message = f"API Error {response.status}: {response.reason}"
                         if error_data and isinstance(error_data, dict):
@@ -99,7 +101,7 @@ client = CodaClient()
 @mcp.tool()
 async def whoami() -> Any:
     """Get information about the current authenticated user.
-    
+
     Returns:
         User information including name, email, and scoped token info.
     """
@@ -341,12 +343,14 @@ async def deletePage(docId: str, pageIdOrName: str) -> Any:
 async def _begin_page_export(docId: str, pageIdOrName: str, outputFormat: str = "html") -> dict[str, Any]:
     """Internal function to start a page content export."""
     data = {"outputFormat": outputFormat}
-    return await client.request(Method.POST, f"docs/{docId}/pages/{pageIdOrName}/export", json=data)
+    result = await client.request(Method.POST, f"docs/{docId}/pages/{pageIdOrName}/export", json=data)
+    return cast(dict[str, Any], result)
 
 
 async def _get_export_status(docId: str, pageIdOrName: str, requestId: str) -> dict[str, Any]:
     """Internal function to check page export status."""
-    return await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}/export/{requestId}")
+    result = await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}/export/{requestId}")
+    return cast(dict[str, Any], result)
 
 
 async def _get_export_status_by_href(href: str) -> dict[str, Any]:
@@ -354,36 +358,39 @@ async def _get_export_status_by_href(href: str) -> dict[str, Any]:
     # Extract the path from the full URL
     # href format: https://coda.io/apis/v1/docs/{docId}/pages/{pageId}/export/{requestId}
     if href.startswith(client.baseUrl):
-        path = href[len(client.baseUrl) + 1:]  # +1 for the trailing slash
+        path = href[len(client.baseUrl) + 1 :]  # +1 for the trailing slash
     else:
         # Handle case where href might be a full URL with different base
         import urllib.parse
+
         parsed = urllib.parse.urlparse(href)
         path = parsed.path.replace("/apis/v1/", "", 1)
-    
-    return await client.request(Method.GET, path)
+
+    result = await client.request(Method.GET, path)
+    return cast(dict[str, Any], result)
 
 
 async def _download_content(url: str) -> str:
     """Internal function to download content from a URL."""
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
-            return await response.text()
+            content = await response.text()
+            return content
 
 
 @mcp.tool()
 async def getPageContent(docId: str, pageIdOrName: str, outputFormat: str = "html") -> Any:
     """Export and retrieve page content (convenience method).
-    
+
     This method combines beginPageContentExport and getPageContentExportStatus
     to provide a simple way to get page content. It handles the polling loop
     and returns the actual content.
-    
+
     Args:
         docId: ID of the doc.
         pageIdOrName: ID or name of the page.
         outputFormat: Format for export (html or markdown).
-    
+
     Returns:
         The exported page content as a string.
     """
@@ -392,22 +399,22 @@ async def getPageContent(docId: str, pageIdOrName: str, outputFormat: str = "htm
         export_result = await _begin_page_export(docId, pageIdOrName, outputFormat)
     except Exception as e:
         raise Exception(f"Failed to start page export: {str(e)}")
-    
+
     request_id = export_result.get("id")
     href = export_result.get("href")
-    
+
     if not request_id:
         raise Exception(f"Failed to start export - no request ID returned. Response: {export_result}")
-    
+
     if not href:
         raise Exception(f"Failed to start export - no href returned. Response: {export_result}")
-    
+
     # Poll for completion (with timeout)
     max_attempts = 30
     for i in range(max_attempts):
         # Use the href from the export response to check status
         status = await _get_export_status_by_href(href)
-        
+
         if status.get("status") == "complete":
             # Fetch content from download URL
             download_url = status.get("downloadLink")
@@ -415,14 +422,14 @@ async def getPageContent(docId: str, pageIdOrName: str, outputFormat: str = "htm
                 return await _download_content(download_url)
             else:
                 raise Exception("Export completed but no download URL provided")
-                
+
         elif status.get("status") == "failed":
             error = status.get("error", "Unknown error")
             raise Exception(f"Export failed: {error}")
-            
+
         # Wait before next poll
         await asyncio.sleep(1)
-    
+
     raise Exception("Export timed out after 30 seconds")
 
 
@@ -753,13 +760,13 @@ async def listFormulas(
     sortBy: Literal["name"] | None = None,
 ) -> Any:
     """List named formulas in a doc.
-    
+
     Args:
         docId: ID of the doc.
         limit: Maximum number of results to return.
         pageToken: An opaque token to fetch the next page of results.
         sortBy: How to sort the results.
-    
+
     Returns:
         List of named formulas.
     """
@@ -770,11 +777,11 @@ async def listFormulas(
 @mcp.tool()
 async def getFormula(docId: str, formulaIdOrName: str) -> Any:
     """Get details about a specific formula.
-    
+
     Args:
         docId: ID of the doc.
         formulaIdOrName: ID or name of the formula.
-    
+
     Returns:
         Formula details including the formula expression.
     """
