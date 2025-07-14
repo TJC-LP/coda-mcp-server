@@ -46,9 +46,20 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 
 1. **Coda API Key**: Get your API token from [Coda Account Settings](https://coda.io/account)
 2. **Python 3.11+**: Required for the MCP server
-3. **uv**: Modern Python package manager ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
 
-### Quick Start
+### Option 1: Install from PyPI (Recommended)
+
+The Coda MCP server is available on PyPI and can be installed directly using `uvx` (recommended) or `pip`:
+
+```bash
+# Using uvx (no installation needed, just run)
+uvx coda-mcp-server
+
+# Or install globally with pip
+pip install coda-mcp-server
+```
+
+### Option 2: Install from Source
 
 1. **Clone the repository**
    ```bash
@@ -70,12 +81,60 @@ A Model Context Protocol (MCP) server that provides seamless integration between
    CODA_API_KEY=your-actual-api-key-here
    ```
 
-4. **Install to Claude Desktop**
-   ```bash
-   uv run mcp install src/coda_mcp_server/server.py -f .env
-   ```
+## Configuration for Claude Desktop
 
-   This command automatically configures Claude Desktop to use the Coda MCP server.
+To use the Coda MCP server with Claude Desktop, you need to add it to your Claude Desktop configuration file.
+
+### Configuration File Location
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+### Add the Coda MCP Server
+
+Edit the configuration file and add the Coda server to the `mcpServers` section:
+
+```json
+{
+  "mcpServers": {
+    "coda": {
+      "command": "uvx",
+      "args": ["coda-mcp-server"],
+      "env": {
+        "CODA_API_KEY": "your-coda-api-key-here"
+      }
+    }
+  }
+}
+```
+
+> **Important**: Replace `your-coda-api-key-here` with your actual Coda API key from [Coda Account Settings](https://coda.io/account).
+
+### Alternative: Using Local Installation
+
+If you installed from source, you can point to your local installation:
+
+```json
+{
+  "mcpServers": {
+    "coda": {
+      "command": "uv",
+      "args": ["run", "python", "/path/to/coda-mcp-server/src/coda_mcp_server/server.py"],
+      "env": {
+        "CODA_API_KEY": "your-coda-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Verify Installation
+
+After adding the configuration:
+1. Restart Claude Desktop
+2. Look for the 🔌 icon in the bottom of your conversation
+3. Click it and verify that "coda" is listed as a connected server
+4. You should see available Coda tools when you type `/` in the chat
 
 ## Usage in Claude
 
