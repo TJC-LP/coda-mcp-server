@@ -132,9 +132,9 @@ If you installed from source, you can point to your local installation:
 
 After adding the configuration:
 1. Restart Claude Desktop
-2. Look for the 🔌 icon in the bottom of your conversation
+2. Look for the settings icon in the bottom of your conversation
 3. Click it and verify that "coda" is listed as a connected server
-4. You should see available Coda tools when you type `/` in the chat
+4. You should see 25 available Coda tools when you click `coda` in the dropdown and can toggle the ones that you need specifically.
 
 ## Usage in Claude
 
