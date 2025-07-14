@@ -230,6 +230,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "fastmcp" },
+    { name = "typing-extensions" },
 ]
 
 [package.dev-dependencies]
@@ -247,6 +248,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.12.14,<4.0.0" },
     { name = "fastmcp", specifier = ">=2.10.5,<3.0.0" },
+    { name = "typing-extensions", specifier = ">=4.9.0" },
 ]
 
 [package.metadata.requires-dev]

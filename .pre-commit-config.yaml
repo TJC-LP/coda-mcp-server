@@ -18,6 +18,7 @@ repos:
           - aiohttp>=3.12.12
           - requests>=2.32.4
           - types-requests
+          - typing_extensions>=4.9.0
           - pytest>=8.4.1
           - pytest-asyncio>=1.0.0
           - aioresponses>=0.7.6

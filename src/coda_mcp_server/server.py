@@ -4,7 +4,8 @@ import asyncio
 import json
 import os
 from enum import StrEnum
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, cast
+from typing_extensions import TypedDict
 
 import aiohttp
 from dotenv import load_dotenv
