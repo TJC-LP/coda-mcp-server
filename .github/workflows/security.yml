@@ -23,11 +23,10 @@ jobs:
       with:
         python-version: "3.12"
     
-    - name: Install dependencies
+    - name: Generate requirements.txt for Safety
       run: |
         # Install dependencies and generate requirements.txt for Safety to scan
         uv sync --frozen
-        uv pip install bandit
         uv pip freeze > requirements.txt
     
     - name: Run Safety check
@@ -36,15 +35,6 @@ jobs:
         api-key: ${{ secrets.SAFETY_API_KEY }}
     
     - name: Run Bandit security linter
-      run: |
-        uv run bandit -r src/ -f json -o bandit-report.json || true
-        uv run bandit -r src/ || true
-      continue-on-error: true
-    
-    - name: Upload Bandit report
-      if: always()
-      uses: actions/upload-artifact@v4
+      uses: PyCQA/bandit-action@v1
       with:
-        name: bandit-report
-        path: bandit-report.json
-        retention-days: 30
+        path: "src/"

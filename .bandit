@@ -1,0 +1,23 @@
+# Bandit configuration file
+# https://bandit.readthedocs.io/en/latest/config.html
+
+[bandit]
+# Test IDs to skip
+# B110: try_except_pass - We've fixed this by being more specific with exceptions
+# skips = B110
+
+# Paths to exclude
+exclude_dirs = [
+    '/tests/',
+    '/test/',
+    '/.venv/',
+    '/venv/',
+    '/.tox/',
+    '/dist/',
+    '/build/',
+    '/.git/',
+    '/__pycache__/',
+    '/.mypy_cache/',
+    '/.pytest_cache/',
+    '/.ruff_cache/',
+]

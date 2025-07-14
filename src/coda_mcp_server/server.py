@@ -58,8 +58,9 @@ class CodaClient:
                         error_data = None
                         try:
                             error_data = await response.json()
-                        except Exception:
-                            pass
+                        except (json.JSONDecodeError, aiohttp.ContentTypeError):
+                            # Response body is not valid JSON, which is expected for some error responses
+                            error_data = None
 
                         error_message = f"API Error {response.status}: {response.reason}"
                         if error_data and isinstance(error_data, dict):
