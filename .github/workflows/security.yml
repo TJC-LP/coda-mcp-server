@@ -21,20 +21,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-    
-    - name: Generate requirements.txt for Safety
-      run: |
-        # Install dependencies and generate requirements.txt for Safety to scan
-        uv sync --frozen
-        uv pip freeze > requirements.txt
-    
     - name: Run Safety check
       uses: pyupio/safety-action@v1
       with:
