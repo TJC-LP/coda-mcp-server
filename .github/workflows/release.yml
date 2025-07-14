@@ -63,19 +63,10 @@ jobs:
         name: python-package-distributions
         path: dist/
     
-    - name: Set up Python for release notes
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-    
-    - name: Generate release notes
-      id: release_notes
-      run: |
-        python .github/scripts/generate-release-notes.py > release-notes.md
-    
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
-        body_path: release-notes.md
         files: dist/*
-        generate_release_notes: false
+        generate_release_notes: true
+        draft: false
+        prerelease: false
