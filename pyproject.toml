@@ -48,7 +48,8 @@ dev = [
     "pytest>=8.4.1,<9.0.0",
     "pytest-asyncio>=1.0.0,<2.0.0",
     "pytest-cov>=6.2.1,<7.0.0",
-    "ruff>=0.12.3,<1.0.0"
+    "ruff>=0.12.3,<1.0.0",
+    "aioresponses>=0.7.6,<1.0.0"
 ]
 
 [tool.ruff]
