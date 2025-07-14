@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 from enum import StrEnum
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 import aiohttp
 from dotenv import load_dotenv
@@ -342,13 +342,13 @@ async def _begin_page_export(docId: str, pageIdOrName: str, outputFormat: str = 
     """Internal function to start a page content export."""
     data = {"outputFormat": outputFormat}
     result = await client.request(Method.POST, f"docs/{docId}/pages/{pageIdOrName}/export", json=data)
-    return result
+    return cast(dict[str, Any], result)
 
 
 async def _get_export_status(docId: str, pageIdOrName: str, requestId: str) -> dict[str, Any]:
     """Internal function to check page export status."""
     result = await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}/export/{requestId}")
-    return result
+    return cast(dict[str, Any], result)
 
 
 async def _get_export_status_by_href(href: str) -> dict[str, Any]:
@@ -365,7 +365,7 @@ async def _get_export_status_by_href(href: str) -> dict[str, Any]:
         path = parsed.path.replace("/apis/v1/", "", 1)
 
     result = await client.request(Method.GET, path)
-    return result
+    return cast(dict[str, Any], result)
 
 
 async def _download_content(url: str) -> str:
