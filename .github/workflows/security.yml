@@ -36,5 +36,3 @@ jobs:
     
     - name: Run Bandit security linter
       uses: PyCQA/bandit-action@v1
-      with:
-        path: "src/"
