@@ -2,6 +2,8 @@
 
 A Model Context Protocol (MCP) server that provides seamless integration between Claude and Coda.io, enabling AI-powered document automation and data manipulation.
 
+> **Note**: This is an unofficial MCP server developed by TJC L.P. and is not affiliated with, endorsed by, or supported by Coda. For official Coda support and documentation, please visit [coda.io](https://coda.io).
+
 ## Features
 
 ### Document Operations

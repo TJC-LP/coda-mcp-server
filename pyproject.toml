@@ -34,10 +34,10 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/coda-mcp-server"
-"Bug Tracker" = "https://github.com/yourusername/coda-mcp-server/issues"
-"Documentation" = "https://github.com/yourusername/coda-mcp-server#readme"
-"Source Code" = "https://github.com/yourusername/coda-mcp-server"
+"Homepage" = "https://github.com/TJC-LP/coda-mcp-server"
+"Bug Tracker" = "https://github.com/TJC-LP/coda-mcp-server/issues"
+"Documentation" = "https://github.com/TJC-LP/coda-mcp-server#readme"
+"Source Code" = "https://github.com/TJC-LP/coda-mcp-server"
 
 [project.scripts]
 coda-mcp-server = "coda_mcp_server.server:main"
