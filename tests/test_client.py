@@ -2,7 +2,7 @@
 
 from pytest import MonkeyPatch
 
-from coda_mcp_server.server import CodaClient
+from coda_mcp_server.client import CodaClient
 
 
 class TestCodaClient:
