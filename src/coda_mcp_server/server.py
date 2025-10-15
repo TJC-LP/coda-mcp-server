@@ -1,10 +1,9 @@
 """A template MCP server."""
 
-import asyncio
 import json
 import os
 from enum import StrEnum
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import aiohttp
 from dotenv import load_dotenv
@@ -335,102 +334,84 @@ async def deletePage(docId: str, pageIdOrName: str) -> Any:
     return await client.request(Method.DELETE, f"docs/{docId}/pages/{pageIdOrName}")
 
 
-# Note: beginPageContentExport and getPageContentExportStatus have been removed
-# in favor of the simpler getPageContent function that handles the entire workflow
-
-
-# Internal helper functions (not exposed as MCP tools)
-async def _begin_page_export(docId: str, pageIdOrName: str, outputFormat: str = "html") -> dict[str, Any]:
-    """Internal function to start a page content export."""
-    data = {"outputFormat": outputFormat}
-    result = await client.request(Method.POST, f"docs/{docId}/pages/{pageIdOrName}/export", json=data)
-    return cast(dict[str, Any], result)
-
-
-async def _get_export_status(docId: str, pageIdOrName: str, requestId: str) -> dict[str, Any]:
-    """Internal function to check page export status."""
-    result = await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}/export/{requestId}")
-    return cast(dict[str, Any], result)
-
-
-async def _get_export_status_by_href(href: str) -> dict[str, Any]:
-    """Internal function to check page export status using the href from the export response."""
-    # Extract the path from the full URL
-    # href format: https://coda.io/apis/v1/docs/{docId}/pages/{pageId}/export/{requestId}
-    if href.startswith(client.baseUrl):
-        path = href[len(client.baseUrl) + 1 :]  # +1 for the trailing slash
-    else:
-        # Handle case where href might be a full URL with different base
-        import urllib.parse
-
-        parsed = urllib.parse.urlparse(href)
-        path = parsed.path.replace("/apis/v1/", "", 1)
-
-    result = await client.request(Method.GET, path)
-    return cast(dict[str, Any], result)
-
-
-async def _download_content(url: str) -> str:
-    """Internal function to download content from a URL."""
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            content = await response.text()
-            return content
+# Page content export endpoints - expose async workflow to LLM for better error handling
+# The LLM will handle the multi-step process: initiate export, poll status, download content
 
 
 @mcp.tool()
-async def getPageContent(docId: str, pageIdOrName: str, outputFormat: str = "html") -> Any:
-    """Export and retrieve page content (convenience method).
+async def beginPageContentExport(docId: str, pageIdOrName: str, outputFormat: str = "html") -> Any:
+    """Initiate an export of page content.
 
-    This method combines beginPageContentExport and getPageContentExportStatus
-    to provide a simple way to get page content. It handles the polling loop
-    and returns the actual content.
+    This starts an asynchronous export process. The export is not immediate - you must poll
+    the status using getPageContentExportStatus with the returned request ID.
+
+    IMPORTANT: Due to Coda's server replication, the export request may not be immediately
+    available on all servers. If you get a 404 error when checking status, wait 2-3 seconds
+    and retry with exponential backoff.
+
+    Workflow:
+    1. Call this endpoint to start export
+    2. Wait 2-3 seconds for server replication
+    3. Poll getPageContentExportStatus until status="complete"
+    4. Use the downloadLink from the status response to download content
 
     Args:
         docId: ID of the doc.
         pageIdOrName: ID or name of the page.
-        outputFormat: Format for export (html or markdown).
+        outputFormat: Format for export - either "html" or "markdown".
 
     Returns:
-        The exported page content as a string.
+        Export response with:
+        - id: The request ID to use for polling status
+        - status: Initial status (usually "inProgress")
+        - href: URL to check export status
     """
-    # Start export using internal function
-    try:
-        export_result = await _begin_page_export(docId, pageIdOrName, outputFormat)
-    except Exception as e:
-        raise Exception(f"Failed to start page export: {str(e)}")
+    data = {"outputFormat": outputFormat}
+    result = await client.request(Method.POST, f"docs/{docId}/pages/{pageIdOrName}/export", json=data)
+    return result
 
-    request_id = export_result.get("id")
-    href = export_result.get("href")
 
-    if not request_id:
-        raise Exception(f"Failed to start export - no request ID returned. Response: {export_result}")
+@mcp.tool()
+async def getPageContentExportStatus(docId: str, pageIdOrName: str, requestId: str) -> Any:
+    """Check the status of a page content export.
 
-    if not href:
-        raise Exception(f"Failed to start export - no href returned. Response: {export_result}")
+    Poll this endpoint to check if your export (initiated with beginPageContentExport) is ready.
 
-    # Poll for completion (with timeout)
-    max_attempts = 30
-    for i in range(max_attempts):
-        # Use the href from the export response to check status
-        status = await _get_export_status_by_href(href)
+    IMPORTANT: 404 errors are expected initially due to server replication lag. If you receive
+    a 404 error, wait 2-3 seconds and retry. Use exponential backoff for subsequent retries.
 
-        if status.get("status") == "complete":
-            # Fetch content from download URL
-            download_url = status.get("downloadLink")
-            if download_url:
-                return await _download_content(download_url)
-            else:
-                raise Exception("Export completed but no download URL provided")
+    When the export completes, this function automatically downloads the content for you,
+    so you receive the actual page content directly without needing to make an additional request.
 
-        elif status.get("status") == "failed":
-            error = status.get("error", "Unknown error")
-            raise Exception(f"Export failed: {error}")
+    Args:
+        docId: ID of the doc.
+        pageIdOrName: ID or name of the page.
+        requestId: The request ID returned from beginPageContentExport.
 
-        # Wait before next poll
-        await asyncio.sleep(1)
+    Returns:
+        Status response with:
+        - id: The request ID
+        - status: "inProgress", "complete", or "failed"
+        - href: URL to check status again
+        - downloadLink: (when status="complete") Temporary URL where content was downloaded from
+        - content: (when status="complete") The actual exported page content (HTML or markdown)
+        - error: (when status="failed") Error message describing what went wrong
 
-    raise Exception("Export timed out after 30 seconds")
+    Next steps:
+    - If status="inProgress": Wait 1-2 seconds and poll again
+    - If status="complete": The content field contains the exported page content
+    - If status="failed": Check error message and handle accordingly
+    """
+    result = await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}/export/{requestId}")
+
+    # Auto-fetch content when export is complete
+    if result.get("status") == "complete" and result.get("downloadLink"):
+        download_url = result["downloadLink"]
+        async with aiohttp.ClientSession() as session:
+            async with session.get(download_url) as response:
+                result["content"] = await response.text()
+
+    return result
 
 
 @mcp.tool()

@@ -195,3 +195,6 @@ cython_debug/
 
 # PyCharm
 .idea
+
+# MCP
+.mcp.json
