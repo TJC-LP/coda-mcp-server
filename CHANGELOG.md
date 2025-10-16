@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-10-16
+
+### Added
+- `.mcp.json` file for seamless Claude Code integration (uses dotenv for API key)
+
+### Changed
+- Updated README.md with Claude Code setup instructions
+- Updated all README examples to use snake_case function names (v1.0.0 breaking change)
+- Moved `load_dotenv()` before client initialization to ensure API key is loaded
+
+### Fixed
+- Claude Code integration now works out of the box (just set `.env`)
+- API key initialization order (dotenv loaded before CodaClient creation)
+
+### Removed
+- `.mcp.example.json` (replaced with committed `.mcp.json` that uses dotenv)
+- `.mcp.json` from .gitignore (safe to commit since API key is in .env)
+
 ## [1.0.0] - 2025-10-16
 
 ### 🎉 Major Release - Production Ready
@@ -184,7 +202,8 @@ Initial release.
 - API tokens are handled securely via environment variables
 - No sensitive information is logged
 
-[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v0.1.1...v1.0.0
 [0.1.1]: https://github.com/TJC-LP/coda-mcp-server/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/TJC-LP/coda-mcp-server/releases/tag/v0.1.0

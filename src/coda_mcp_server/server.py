@@ -45,6 +45,7 @@ from .models import (
 from .tools import docs, formulas, pages, rows, tables
 
 # Central MCP server instance
+load_dotenv()
 mcp = FastMCP("coda", dependencies=["aiohttp"])
 client = CodaClient()
 
@@ -141,7 +142,7 @@ async def list_docs(
 @mcp.tool(
     description=(
         "Create a new Coda doc with optional configuration including title, timezone, "
-        "folder/workspace placement, and initial page content"
+        "folder placement, and initial page content"
     )
 )
 async def create_doc(
@@ -149,7 +150,6 @@ async def create_doc(
     source_doc: str | None = None,
     timezone: str | None = None,
     folder_id: str | None = None,
-    workspace_id: str | None = None,
     initial_page: InitialPage | None = None,
 ) -> DocumentCreationResult:
     """Create a new Coda doc.
@@ -159,12 +159,11 @@ async def create_doc(
         source_doc: Optional ID of a doc to copy.
         timezone: Timezone for the doc, e.g. 'America/Los_Angeles'.
         folder_id: ID of the folder to place the doc in.
-        workspace_id: ID of the workspace to place the doc in.
         initial_page: Configuration for the initial page of the doc.
             Can include name, subtitle, iconName, imageUrl, parentPageId, and pageContent.
 
     Returns:
-        Dictionary containing information about the newly created doc.
+        DocumentCreationResult with the newly created doc's metadata.
     """
     request = DocCreate(
         title=title,
@@ -684,7 +683,6 @@ async def get_formula(doc_id: str, formula_id_or_name: str) -> Formula:
 
 def main() -> None:
     """Run the server."""
-    load_dotenv()
     mcp.run()
 
 

@@ -83,16 +83,45 @@ pip install coda-mcp-server
    CODA_API_KEY=your-actual-api-key-here
    ```
 
-## Configuration for Claude Desktop
+## Configuration
+
+### Option 1: Claude Code (Recommended for Development)
+
+For using with Claude Code during development:
+
+1. **Set up your API key in `.env`:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your Coda API key
+   ```
+
+2. **MCP configuration is already included!**
+
+   The repository includes a `.mcp.json` file that automatically configures the Coda MCP server:
+   ```json
+   {
+     "mcpServers": {
+       "coda": {
+         "command": "uv",
+         "args": ["run", "coda-mcp-server"]
+       }
+     }
+   }
+   ```
+
+3. **Reload Claude Code** - The MCP server will be automatically available
+
+> **Note:** The API key is loaded from `.env` (which is gitignored), so `.mcp.json` can be safely committed
+
+### Option 2: Claude Desktop
 
 To use the Coda MCP server with Claude Desktop, you need to add it to your Claude Desktop configuration file.
 
-### Configuration File Location
-
+**Configuration File Location:**
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-### Add the Coda MCP Server
+**Add the Coda MCP Server:**
 
 Edit the configuration file and add the Coda server to the `mcpServers` section:
 
@@ -121,7 +150,12 @@ If you installed from source, you can point to your local installation:
   "mcpServers": {
     "coda": {
       "command": "uv",
-      "args": ["run", "python", "/path/to/coda-mcp-server/src/coda_mcp_server/server.py"],
+      "args": [
+         "run", 
+         "--directory", 
+         "/path/to/repo",
+         "coda-mcp-server"
+      ],
       "env": {
         "CODA_API_KEY": "your-coda-api-key-here"
       }

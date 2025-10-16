@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "coda": {
+      "command": "uv",
+      "args": ["run", "coda-mcp-server"]
+    }
+  }
+}
