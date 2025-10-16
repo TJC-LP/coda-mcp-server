@@ -11,26 +11,25 @@ Poll the href URL from the initial response to check status and get the download
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from .common import CodaBaseModel
 
 
-class BeginPageContentExportRequest(BaseModel):
+class BeginPageContentExportRequest(CodaBaseModel):
     """Request for beginning an export of page content.
 
     The export process is asynchronous - this request initiates the export
     and returns a status URL to poll for completion.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
-
     output_format: Literal["html", "markdown"] = Field(
         ...,
-        alias="outputFormat",
         description="Supported output content formats that can be requested for getting content for an existing page.",
     )
 
 
-class BeginPageContentExportResponse(BaseModel):
+class BeginPageContentExportResponse(CodaBaseModel):
     """Response when beginning an export of page content.
 
     Contains the export request ID and a status URL to poll for completion.
@@ -58,7 +57,7 @@ class BeginPageContentExportResponse(BaseModel):
     )
 
 
-class PageContentExportStatusResponse(BaseModel):
+class PageContentExportStatusResponse(CodaBaseModel):
     """Response when requesting the status of a page content export.
 
     Poll this endpoint to check export status. When status is "complete",
@@ -71,8 +70,6 @@ class PageContentExportStatusResponse(BaseModel):
     - "complete": Export finished successfully, downloadLink is available
     - "failed": Export failed, error field contains details
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(
         ...,
@@ -91,7 +88,6 @@ class PageContentExportStatusResponse(BaseModel):
     )
     download_link: str | None = Field(
         None,
-        alias="downloadLink",
         description=(
             "Once the export completes, the location where the resulting export "
             "file can be downloaded; this link typically expires after a short "

@@ -30,6 +30,7 @@ from .common import (
     TooManyRequestsError,
     UnauthorizedError,
     UnprocessableEntityError,
+    User,
     ValidationError,
     ValueFormat,
     WorkspaceReference,
@@ -174,6 +175,7 @@ __all__ = [
     "DocReference",
     "FolderReference",
     "WorkspaceReference",
+    "User",
     # Common - Response models
     "DocumentMutateResponse",
     # Docs

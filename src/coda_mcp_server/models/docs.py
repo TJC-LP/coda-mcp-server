@@ -16,9 +16,10 @@ This module contains models for working with Coda docs, including:
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
 from .common import (
+    CodaBaseModel,
     DocReference,
     DocumentMutateResponse,
     FolderReference,
@@ -27,41 +28,35 @@ from .common import (
 )
 
 
-class DocSize(BaseModel):
+class DocSize(CodaBaseModel):
     """The number of components within a Coda doc.
 
     Provides information about the size and complexity of a doc.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
-
     total_row_count: float = Field(
         ...,
-        alias="totalRowCount",
         description="The number of rows contained within all tables of the doc.",
         examples=[31337],
     )
     table_and_view_count: float = Field(
         ...,
-        alias="tableAndViewCount",
         description="The total number of tables and views contained within the doc.",
         examples=[42],
     )
     page_count: float = Field(
         ...,
-        alias="pageCount",
         description="The total number of page contained within the doc.",
         examples=[10],
     )
     over_api_size_limit: bool = Field(
         ...,
-        alias="overApiSizeLimit",
         description="If true, indicates that the doc is over the API size limit.",
         examples=[False],
     )
 
 
-class DocCategory(BaseModel):
+class DocCategory(CodaBaseModel):
     """The category applied to a doc.
 
     Categories are used to classify published docs in the Coda gallery.
@@ -87,13 +82,11 @@ class DocPublishMode(str):
     EDIT = "edit"
 
 
-class DocPublished(BaseModel):
+class DocPublished(CodaBaseModel):
     """Information about the publishing state of the document.
 
     Contains details about how a doc is published and shared publicly.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     description: str | None = Field(
         None,
@@ -102,13 +95,11 @@ class DocPublished(BaseModel):
     )
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="URL to the published doc.",
         examples=["https://coda.io/@coda/hello-world"],
     )
     image_link: str | None = Field(
         None,
-        alias="imageLink",
         description="URL to the cover image for the published doc.",
     )
     discoverable: bool = Field(
@@ -118,7 +109,6 @@ class DocPublished(BaseModel):
     )
     earn_credit: bool = Field(
         ...,
-        alias="earnCredit",
         description=(
             "If true, new users may be required to sign in to view content within this document. "
             "You will receive Coda credit for each user who signs up via your doc."
@@ -136,14 +126,12 @@ class DocPublished(BaseModel):
     )
 
 
-class Doc(BaseModel):
+class Doc(CodaBaseModel):
     """Metadata about a Coda doc.
 
     Contains comprehensive information about a doc including ownership,
     timestamps, location in workspace/folder hierarchy, and publishing state.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(
         ...,
@@ -161,7 +149,6 @@ class Doc(BaseModel):
     )
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to the Coda doc.",
         examples=["https://coda.io/d/_dAbCDeFGH"],
     )
@@ -181,29 +168,24 @@ class Doc(BaseModel):
     )
     owner_name: str = Field(
         ...,
-        alias="ownerName",
         description="Name of the doc owner.",
         examples=["Some User"],
     )
     doc_size: DocSize | None = Field(
         None,
-        alias="docSize",
         description="The number of components within a Coda doc.",
     )
     source_doc: DocReference | None = Field(
         None,
-        alias="sourceDoc",
         description="Reference to a Coda doc from which this doc was copied, if any.",
     )
     created_at: str = Field(
         ...,
-        alias="createdAt",
         description="Timestamp for when the doc was created.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
     updated_at: str = Field(
         ...,
-        alias="updatedAt",
         description="Timestamp for when the doc was last modified.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
@@ -221,28 +203,24 @@ class Doc(BaseModel):
     )
     workspace_id: str = Field(
         ...,
-        alias="workspaceId",
         description="ID of the Coda workspace containing this doc.",
         examples=["ws-1Ab234"],
         deprecated=True,
     )
     folder_id: str = Field(
         ...,
-        alias="folderId",
         description="ID of the Coda folder containing this doc.",
         examples=["fl-1Ab234"],
         deprecated=True,
     )
 
 
-class DocList(BaseModel):
+class DocList(CodaBaseModel):
     """List of Coda docs.
 
     Contains a paginated list of docs with optional pagination tokens
     to fetch additional results.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     items: list[Doc] = Field(
         ...,
@@ -255,13 +233,11 @@ class DocList(BaseModel):
     )
     next_page_token: str | None = Field(
         None,
-        alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
     next_page_link: str | None = Field(
         None,
-        alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",
         examples=["https://coda.io/apis/v1/docs?pageToken=eyJsaW1pd"],
     )
@@ -278,13 +254,11 @@ class PageContentFormat(str):
     MARKDOWN = "markdown"
 
 
-class PageContent(BaseModel):
+class PageContent(CodaBaseModel):
     """Content for a page (canvas).
 
     The actual content can be provided in HTML or Markdown format.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     format: Literal["html", "markdown"] = Field(
         ...,
@@ -308,13 +282,11 @@ class PageEmbedRenderMethod(str):
     STANDARD = "standard"
 
 
-class CanvasPageContent(BaseModel):
+class CanvasPageContent(CodaBaseModel):
     """Canvas page content with type discriminator.
 
     Represents a page containing rich text/canvas content.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     type: Literal["canvas"] = Field(
         ...,
@@ -322,18 +294,15 @@ class CanvasPageContent(BaseModel):
     )
     canvas_content: PageContent = Field(
         ...,
-        alias="canvasContent",
         description="Content for the canvas page.",
     )
 
 
-class EmbedPageContent(BaseModel):
+class EmbedPageContent(CodaBaseModel):
     """Embed page content with type discriminator.
 
     Represents a page that embeds external content.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     type: Literal["embed"] = Field(
         ...,
@@ -346,19 +315,16 @@ class EmbedPageContent(BaseModel):
     )
     render_method: Literal["compatibility", "standard"] | None = Field(
         None,
-        alias="renderMethod",
         description="Render mode for the embed.",
     )
 
 
-class PageCreate(BaseModel):
+class PageCreate(CodaBaseModel):
     """Payload for creating a new page in a doc.
 
     Used when creating a doc with an initial page, or when adding
     a page to an existing doc.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     name: str | None = Field(
         None,
@@ -372,37 +338,31 @@ class PageCreate(BaseModel):
     )
     icon_name: str | None = Field(
         None,
-        alias="iconName",
         description="Name of the icon.",
         examples=["rocket"],
     )
     image_url: str | None = Field(
         None,
-        alias="imageUrl",
         description="Url of the cover image to use.",
         examples=["https://example.com/image.jpg"],
     )
     parent_page_id: str | None = Field(
         None,
-        alias="parentPageId",
         description="The ID of this new page's parent, if creating a subpage.",
         examples=["canvas-tuVwxYz"],
     )
     page_content: CanvasPageContent | None = Field(
         None,
-        alias="pageContent",
         description="Content that can be added to a page at creation time.",
     )
 
 
-class DocCreate(BaseModel):
+class DocCreate(CodaBaseModel):
     """Payload for creating a new doc.
 
     A new doc can be created from scratch or by copying an existing doc.
     You can optionally specify a folder/workspace location and initial page content.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     title: str | None = Field(
         None,
@@ -411,7 +371,6 @@ class DocCreate(BaseModel):
     )
     source_doc: str | None = Field(
         None,
-        alias="sourceDoc",
         description="An optional doc ID from which to create a copy.",
         examples=["iJKlm_noPq"],
     )
@@ -422,7 +381,6 @@ class DocCreate(BaseModel):
     )
     folder_id: str | None = Field(
         None,
-        alias="folderId",
         description=(
             'The ID of the folder within which to create this doc. Defaults to your "My docs" folder in the '
             "oldest workspace you joined; this is subject to change. You can get this ID by opening the folder "
@@ -432,18 +390,15 @@ class DocCreate(BaseModel):
     )
     initial_page: PageCreate | None = Field(
         None,
-        alias="initialPage",
         description="The contents of the initial page of the doc.",
     )
 
 
-class DocUpdate(BaseModel):
+class DocUpdate(CodaBaseModel):
     """Payload for updating a doc.
 
     Allows updating basic doc properties like title and icon.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     title: str | None = Field(
         None,
@@ -452,28 +407,25 @@ class DocUpdate(BaseModel):
     )
     icon_name: str | None = Field(
         None,
-        alias="iconName",
         description="Name of the icon.",
         examples=["rocket"],
     )
 
 
-class DocDelete(BaseModel):
+class DocDelete(CodaBaseModel):
     """The result of a doc deletion.
 
     Returned when a doc is successfully deleted.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    pass
 
 
-class DocPublish(BaseModel):
+class DocPublish(CodaBaseModel):
     """Payload for publishing a doc or updating its publishing information.
 
     Controls how the doc appears when published and who can access it.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     slug: str | None = Field(
         None,
@@ -487,7 +439,6 @@ class DocPublish(BaseModel):
     )
     earn_credit: bool | None = Field(
         None,
-        alias="earnCredit",
         description=(
             "If true, new users may be required to sign in to view content within this document. "
             "You will receive Coda credit for each user who signs up via your doc."
@@ -496,7 +447,6 @@ class DocPublish(BaseModel):
     )
     category_names: list[str] | None = Field(
         None,
-        alias="categoryNames",
         description="The names of categories to apply to the document.",
         examples=[["Project management"]],
     )
@@ -512,25 +462,23 @@ class PublishResult(DocumentMutateResponse):
     Extends DocumentMutateResponse with any publish-specific fields.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    pass
 
 
-class UnpublishResult(BaseModel):
+class UnpublishResult(CodaBaseModel):
     """The result of unpublishing a doc.
 
     Returned when a doc is successfully unpublished.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    pass
 
 
-class DocumentCreationResult(BaseModel):
+class DocumentCreationResult(CodaBaseModel):
     """The result of a doc creation.
 
     Similar to Doc but includes a requestId for tracking the creation operation.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(
         ...,
@@ -548,7 +496,6 @@ class DocumentCreationResult(BaseModel):
     )
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to the Coda doc.",
         examples=["https://coda.io/d/_dAbCDeFGH"],
     )
@@ -568,29 +515,24 @@ class DocumentCreationResult(BaseModel):
     )
     owner_name: str = Field(
         ...,
-        alias="ownerName",
         description="Name of the doc owner.",
         examples=["Some User"],
     )
     doc_size: DocSize | None = Field(
         None,
-        alias="docSize",
         description="The number of components within a Coda doc.",
     )
     source_doc: DocReference | None = Field(
         None,
-        alias="sourceDoc",
         description="Reference to a Coda doc from which this doc was copied, if any.",
     )
     created_at: str = Field(
         ...,
-        alias="createdAt",
         description="Timestamp for when the doc was created.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
     updated_at: str = Field(
         ...,
-        alias="updatedAt",
         description="Timestamp for when the doc was last modified.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
@@ -608,42 +550,37 @@ class DocumentCreationResult(BaseModel):
     )
     workspace_id: str = Field(
         ...,
-        alias="workspaceId",
         description="ID of the Coda workspace containing this doc.",
         examples=["ws-1Ab234"],
         deprecated=True,
     )
     folder_id: str = Field(
         ...,
-        alias="folderId",
         description="ID of the Coda folder containing this doc.",
         examples=["fl-1Ab234"],
         deprecated=True,
     )
     request_id: str = Field(
         ...,
-        alias="requestId",
         description="An arbitrary unique identifier for this request.",
         examples=["abc-123-def-456"],
     )
 
 
-class DocUpdateResult(BaseModel):
+class DocUpdateResult(CodaBaseModel):
     """The result of a doc update.
 
     Returned when a doc is successfully updated.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    pass
 
 
-class DocCategoryList(BaseModel):
+class DocCategoryList(CodaBaseModel):
     """A list of categories that can be applied to a doc.
 
     Used to discover available categories for publishing docs.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     items: list[DocCategory] = Field(
         ...,

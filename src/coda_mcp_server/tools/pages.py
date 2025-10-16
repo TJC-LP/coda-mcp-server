@@ -61,7 +61,7 @@ async def update_page(
     result = await client.request(
         Method.PUT,
         f"docs/{doc_id}/pages/{page_id_or_name}",
-        json=page_update.model_dump(by_alias=True, exclude_none=True),
+        json=page_update,
     )
     return PageUpdateResult.model_validate(result)
 
@@ -112,7 +112,7 @@ async def begin_page_content_export(
     result = await client.request(
         Method.POST,
         f"docs/{doc_id}/pages/{page_id_or_name}/export",
-        json=export_request.model_dump(by_alias=True, exclude_none=True),
+        json=export_request,
     )
     return BeginPageContentExportResponse.model_validate(result)
 
@@ -180,6 +180,6 @@ async def create_page(
     result = await client.request(
         Method.POST,
         f"docs/{doc_id}/pages",
-        json=page_create.model_dump(by_alias=True, exclude_none=True),
+        json=page_create,
     )
     return PageCreateResult.model_validate(result)

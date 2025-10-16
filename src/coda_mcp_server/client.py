@@ -8,6 +8,7 @@ import aiohttp
 from pydantic import BaseModel
 
 from .models import Method
+from .models.common import CodaBaseModel
 
 
 def clean_params(params: dict[str, Any]) -> dict[str, Any]:
@@ -45,7 +46,7 @@ class CodaClient:
             method: HTTP method (GET, POST, PUT, DELETE, PATCH)
             endpoint: API endpoint path (without base URL)
             **kwargs: Additional arguments to pass to aiohttp (params, json, etc.)
-                     If json is a Pydantic BaseModel, it will be auto-serialized.
+                     If json is a CodaBaseModel, it will be auto-serialized.
 
         Returns:
             Parsed JSON response or empty dict for 204 responses
@@ -54,8 +55,8 @@ class CodaClient:
             Exception: For network errors, API errors, rate limits, or invalid responses
         """
         # Auto-serialize Pydantic models
-        if "json" in kwargs and isinstance(kwargs["json"], BaseModel):
-            kwargs["json"] = kwargs["json"].model_dump(by_alias=True, exclude_none=True)
+        if "json" in kwargs and isinstance(kwargs["json"], CodaBaseModel):
+            kwargs["json"] = kwargs["json"].model_dump_camel(exclude_none=True)
 
         url = f"{self.base_url}/{endpoint}"
         async with aiohttp.ClientSession() as session:

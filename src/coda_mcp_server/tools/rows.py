@@ -126,7 +126,7 @@ async def upsert_rows(
     result = await client.request(
         Method.POST,
         f"docs/{doc_id}/tables/{table_id_or_name}/rows",
-        json=request.model_dump(by_alias=True, exclude_none=True),
+        json=request,
         params=clean_params(params) if params else None,
     )
     return RowsUpsertResult.model_validate(result)
@@ -162,7 +162,7 @@ async def update_row(
     result = await client.request(
         Method.PUT,
         f"docs/{doc_id}/tables/{table_id_or_name}/rows/{row_id_or_name}",
-        json=request.model_dump(by_alias=True, exclude_none=True),
+        json=request,
         params=clean_params(params) if params else None,
     )
     return RowUpdateResult.model_validate(result)
@@ -207,6 +207,6 @@ async def delete_rows(
     result = await client.request(
         Method.DELETE,
         f"docs/{doc_id}/tables/{table_id_or_name}/rows",
-        json=request.model_dump(by_alias=True, exclude_none=True),
+        json=request,
     )
     return RowsDeleteResult.model_validate(result)

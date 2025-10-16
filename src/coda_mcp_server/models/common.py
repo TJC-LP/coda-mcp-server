@@ -1,9 +1,56 @@
 """Common types and models shared across Coda MCP server."""
 
-from enum import StrEnum
-from typing import Literal
+from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from enum import StrEnum
+from typing import Any, Literal, Mapping
+
+from pydantic import BaseModel, Field, model_validator
+from pydantic.alias_generators import to_snake, to_camel
+
+# ============================================================================
+# Base Model
+# ============================================================================
+
+
+def normalize_keys(obj: Any, method: Literal["to_snake", "to_camel"]) -> Any:
+    """Normalize keys so they are always snake case."""
+    transform = to_snake if method == "to_snake" else to_camel
+    if isinstance(obj, Mapping):
+        return {transform(k) if isinstance(k, str) else k: normalize_keys(v, method) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [normalize_keys(v, method) for v in obj]
+    return obj
+
+
+class CodaBaseModel(BaseModel):
+    """Base model for all Coda API models.
+
+    Provides consistent configuration across all models:
+    - Accepts camelCase input (from Coda API)
+    - Outputs snake_case (Python convention)
+    - Uses snake_case JSON schema
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_input(cls, data: Any) -> Any:
+        # Accept both snake_case and camelCase by normalizing everything to snake_case
+        return normalize_keys(data, "to_snake")
+
+    def model_dump_camel(
+            self,
+            *,
+            mode: Literal["python", "json"] = "python",
+            **kwargs: Any,
+    ) -> dict[str, Any]:
+        """
+        Returns a dict with camelCase keys. All include/exclude/filtering kwargs
+        are applied against snake_case field names (same as .model_dump()).
+        Set mode="json" to get JSON-compatible types (datetimes -> ISO strings, etc.).
+        """
+        data = self.model_dump(mode=mode, **kwargs)  # recursive dump
+        return normalize_keys(data, "to_camel")
 
 # ============================================================================
 # HTTP Method Enum
@@ -67,19 +114,15 @@ class TableType(StrEnum):
 # ============================================================================
 
 
-class ApiError(BaseModel):
+class ApiError(CodaBaseModel):
     """An HTTP error resulting from an unsuccessful request."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     status_code: int = Field(
         ...,
-        alias="statusCode",
         description="HTTP status code of the error.",
     )
     status_message: str = Field(
         ...,
-        alias="statusMessage",
         description="HTTP status message of the error.",
     )
     message: str = Field(
@@ -88,7 +131,7 @@ class ApiError(BaseModel):
     )
 
 
-class ValidationError(BaseModel):
+class ValidationError(CodaBaseModel):
     """Detail about why a particular field failed request validation."""
 
     path: str = Field(
@@ -103,14 +146,11 @@ class ValidationError(BaseModel):
     )
 
 
-class CodaDetail(BaseModel):
+class CodaDetail(CodaBaseModel):
     """Detail about why this request was rejected."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     validation_errors: list[ValidationError] = Field(
         ...,
-        alias="validationErrors",
         description="List of validation errors.",
     )
 
@@ -118,11 +158,8 @@ class CodaDetail(BaseModel):
 class BadRequestError(ApiError):
     """The request parameters did not conform to expectations."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
     coda_detail: CodaDetail | None = Field(
         None,
-        alias="codaDetail",
         description="Detail about why this request was rejected.",
     )
 
@@ -168,10 +205,8 @@ class TooManyRequestsError(ApiError):
 # ============================================================================
 
 
-class PaginationMetadata(BaseModel):
+class PaginationMetadata(CodaBaseModel):
     """Metadata for paginated responses."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     href: str | None = Field(
         None,
@@ -180,13 +215,11 @@ class PaginationMetadata(BaseModel):
     )
     next_page_token: str | None = Field(
         None,
-        alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
     next_page_link: str | None = Field(
         None,
-        alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",
         examples=["https://coda.io/apis/v1/docs?pageToken=eyJsaW1pd"],
     )
@@ -197,10 +230,8 @@ class PaginationMetadata(BaseModel):
 # ============================================================================
 
 
-class PageReference(BaseModel):
+class PageReference(CodaBaseModel):
     """Reference to a page."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(..., description="ID of the page.", examples=["canvas-IjkLmnO"])
     type: Literal["page"] = Field(..., description="The type of this resource.")
@@ -211,36 +242,29 @@ class PageReference(BaseModel):
     )
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to the page.",
         examples=["https://coda.io/d/_dAbCDeFGH/Launch-Status_sumnO"],
     )
     name: str = Field(..., description="Name of the page.", examples=["Launch Status"])
 
 
-class Icon(BaseModel):
+class Icon(CodaBaseModel):
     """Info about the icon."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     name: str = Field(..., description="Name of the icon.")
     type: str = Field(..., description="MIME type of the icon")
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to an icon.",
         examples=["https://cdn.coda.io/icons/png/color/icon-32.png"],
     )
 
 
-class Image(BaseModel):
+class Image(CodaBaseModel):
     """Info about the image."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to an image.",
         examples=["https://codahosted.io/docs/nUYhlXysYO/blobs/bl-lYkYKNzkuT/3f879b9ecfa27448"],
     )
@@ -249,10 +273,8 @@ class Image(BaseModel):
     height: float | None = Field(None, description="The height in pixels of the image.", examples=[600])
 
 
-class FormulaDetail(BaseModel):
+class FormulaDetail(CodaBaseModel):
     """Detailed information about a formula."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     valid: bool = Field(
         ...,
@@ -261,7 +283,6 @@ class FormulaDetail(BaseModel):
     )
     is_volatile: bool | None = Field(
         None,
-        alias="isVolatile",
         description=(
             "Returns whether or not the given formula can return different results in different contexts "
             "(for example, for different users)."
@@ -270,28 +291,23 @@ class FormulaDetail(BaseModel):
     )
     has_user_formula: bool | None = Field(
         None,
-        alias="hasUserFormula",
         description="Returns whether or not the given formula has a User() formula within it.",
         examples=[False],
     )
     has_today_formula: bool | None = Field(
         None,
-        alias="hasTodayFormula",
         description="Returns whether or not the given formula has a Today() formula within it.",
         examples=[False],
     )
     has_now_formula: bool | None = Field(
         None,
-        alias="hasNowFormula",
         description="Returns whether or not the given formula has a Now() formula within it.",
         examples=[False],
     )
 
 
-class PersonValue(BaseModel):
+class PersonValue(CodaBaseModel):
     """A named reference to a person, where the person is identified by email address."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     context: str = Field(
         ...,
@@ -304,21 +320,18 @@ class PersonValue(BaseModel):
     email: str | None = Field(None, description="The email address of the person.", examples=["alice@atkins.com"])
     additional_type: str | None = Field(
         None,
-        alias="additionalType",
         description=(
             "An identifier of additional type info specific to Coda that may not be present in a schema.org taxonomy."
         ),
     )
 
 
-class DocReference(BaseModel):
+class DocReference(CodaBaseModel):
     """Reference to a Coda doc.
 
     A minimal representation of a doc containing just enough information
     to identify and link to it.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(
         ...,
@@ -336,19 +349,16 @@ class DocReference(BaseModel):
     )
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to the Coda doc.",
         examples=["https://coda.io/d/_dAbCDeFGH"],
     )
 
 
-class FolderReference(BaseModel):
+class FolderReference(CodaBaseModel):
     """Reference to a Coda folder.
 
     Folders are used to organize docs within a workspace.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(
         ...,
@@ -361,7 +371,6 @@ class FolderReference(BaseModel):
     )
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to the folder.",
         examples=["https://coda.io/docs?folderId=fl-1Ab234"],
     )
@@ -372,14 +381,12 @@ class FolderReference(BaseModel):
     )
 
 
-class WorkspaceReference(BaseModel):
+class WorkspaceReference(CodaBaseModel):
     """Reference to a Coda workspace.
 
     Workspaces are the top-level organizational unit in Coda, containing
     folders and docs.
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(
         ...,
@@ -392,13 +399,11 @@ class WorkspaceReference(BaseModel):
     )
     organization_id: str | None = Field(
         None,
-        alias="organizationId",
         description="ID of the organization bound to this workspace, if any.",
         examples=["org-2Bc456"],
     )
     browser_link: str = Field(
         ...,
-        alias="browserLink",
         description="Browser-friendly link to the Coda workspace.",
         examples=["https://coda.io/docs?workspaceId=ws-1Ab234"],
     )
@@ -409,18 +414,31 @@ class WorkspaceReference(BaseModel):
     )
 
 
-class DocumentMutateResponse(BaseModel):
+class User(CodaBaseModel):
+    """Information about the current authenticated Coda user."""
+
+    name: str = Field(..., description="Name of the user.", examples=["John Doe"])
+    login_id: str = Field(..., description="Email address of the user.", examples=["user@example.com"])
+    type: Literal["user"] = Field(..., description="The type of this resource.")
+    scoped: bool = Field(..., description="True if the token used is scoped to this user.", examples=[True])
+    token_name: str = Field(..., description="Name of the API token if it has one.", examples=["My API Token"])
+    href: str = Field(
+        ...,
+        description="API link to the user.",
+        examples=["https://coda.io/apis/v1/whoami"],
+    )
+    workspace: WorkspaceReference = Field(..., description="The user's default workspace.")
+
+
+class DocumentMutateResponse(CodaBaseModel):
     """Base response type for an operation that mutates a document.
 
     This is returned by operations that modify documents and provides
     a request ID for tracking the operation.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
-
     request_id: str = Field(
         ...,
-        alias="requestId",
         description="An arbitrary unique identifier for this request.",
         examples=["abc-123-def-456"],
     )
