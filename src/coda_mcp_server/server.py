@@ -18,6 +18,8 @@ from .models import (
     DocumentCreationResult,
     DocUpdate,
     DocUpdateResult,
+    Formula,
+    FormulaList,
     InitialPage,
     Page,
     PageContent,
@@ -646,7 +648,7 @@ async def list_formulas(
     limit: int | None = None,
     page_token: str | None = None,
     sort_by: Literal["name"] | None = None,
-) -> Any:
+) -> FormulaList:
     """List named formulas in a doc.
 
     Args:
@@ -656,13 +658,13 @@ async def list_formulas(
         sort_by: How to sort the results.
 
     Returns:
-        List of named formulas.
+        List of named formulas with pagination metadata.
     """
     return await formulas.list_formulas(client, doc_id, limit, page_token, sort_by)
 
 
-@mcp.tool(description="Get details about a specific named formula including its expression and definition")
-async def get_formula(doc_id: str, formula_id_or_name: str) -> Any:
+@mcp.tool(description="Get details about a specific named formula including its computed value")
+async def get_formula(doc_id: str, formula_id_or_name: str) -> Formula:
     """Get details about a specific formula.
 
     Args:
@@ -670,7 +672,7 @@ async def get_formula(doc_id: str, formula_id_or_name: str) -> Any:
         formula_id_or_name: ID or name of the formula.
 
     Returns:
-        Formula details including the formula expression.
+        Formula details including the computed value.
     """
     return await formulas.get_formula(client, doc_id, formula_id_or_name)
 

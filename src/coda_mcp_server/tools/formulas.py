@@ -1,9 +1,9 @@
 """Formula-related MCP tools for Coda API."""
 
-from typing import Any, Literal
+from typing import Literal
 
 from ..client import CodaClient, clean_params
-from ..models import Method
+from ..models import Formula, FormulaList, Method
 
 
 async def list_formulas(
@@ -12,7 +12,7 @@ async def list_formulas(
     limit: int | None = None,
     page_token: str | None = None,
     sort_by: Literal["name"] | None = None,
-) -> Any:
+) -> FormulaList:
     """List named formulas in a doc.
 
     Args:
@@ -23,13 +23,14 @@ async def list_formulas(
         sort_by: How to sort the results.
 
     Returns:
-        List of named formulas.
+        List of named formulas with pagination metadata.
     """
     params = {"limit": limit, "pageToken": page_token, "sortBy": sort_by}
-    return await client.request(Method.GET, f"docs/{doc_id}/formulas", params=clean_params(params))
+    result = await client.request(Method.GET, f"docs/{doc_id}/formulas", params=clean_params(params))
+    return FormulaList.model_validate(result)
 
 
-async def get_formula(client: CodaClient, doc_id: str, formula_id_or_name: str) -> Any:
+async def get_formula(client: CodaClient, doc_id: str, formula_id_or_name: str) -> Formula:
     """Get details about a specific formula.
 
     Args:
@@ -38,6 +39,7 @@ async def get_formula(client: CodaClient, doc_id: str, formula_id_or_name: str) 
         formula_id_or_name: ID or name of the formula.
 
     Returns:
-        Formula details including the formula expression.
+        Formula details including the computed value.
     """
-    return await client.request(Method.GET, f"docs/{doc_id}/formulas/{formula_id_or_name}")
+    result = await client.request(Method.GET, f"docs/{doc_id}/formulas/{formula_id_or_name}")
+    return Formula.model_validate(result)

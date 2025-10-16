@@ -61,6 +61,13 @@ from .exports import (
     PageContentExportStatusResponse,
 )
 
+# Import formula models
+from .formulas import (
+    Formula,
+    FormulaList,
+    FormulaReference,
+)
+
 # Import page-related models
 from .pages import (
     CanvasContent,
@@ -256,4 +263,8 @@ __all__ = [
     "BeginPageContentExportRequest",
     "BeginPageContentExportResponse",
     "PageContentExportStatusResponse",
+    # Formulas
+    "Formula",
+    "FormulaList",
+    "FormulaReference",
 ]
