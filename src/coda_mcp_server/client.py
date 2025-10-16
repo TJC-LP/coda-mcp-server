@@ -38,7 +38,7 @@ class CodaClient:
         self.base_url = "https://coda.io/apis/v1"
         self.headers = {"Authorization": f"Bearer {self.api_token}", "Content-Type": "application/json"}
 
-    async def request(self, method: Method, endpoint: str, **kwargs: Any) -> Any:
+    async def request(self, method: Method, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make an authenticated request to Coda API.
 
         Args:

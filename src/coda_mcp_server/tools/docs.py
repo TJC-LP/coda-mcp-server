@@ -75,6 +75,7 @@ async def list_docs(
     event relevant to the user (last viewed, edited, or shared).
 
     Args:
+        client: The Coda client instance.
         is_owner: Show only docs owned by the user.
         is_published: Show only published docs.
         query: Search term used to filter down results.

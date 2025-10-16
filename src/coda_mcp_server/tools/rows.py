@@ -168,9 +168,7 @@ async def update_row(
     return RowUpdateResult.model_validate(result)
 
 
-async def delete_row(
-    client: CodaClient, doc_id: str, table_id_or_name: str, row_id_or_name: str
-) -> RowDeleteResult:
+async def delete_row(client: CodaClient, doc_id: str, table_id_or_name: str, row_id_or_name: str) -> RowDeleteResult:
     """Delete a specific row from a table.
 
     Args:

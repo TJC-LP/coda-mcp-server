@@ -19,6 +19,7 @@ async def list_tables(
     """List tables in a Coda doc.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         limit: Maximum number of results to return.
         page_token: An opaque token to fetch the next page of results.
@@ -42,6 +43,7 @@ async def get_table(client: CodaClient, doc_id: str, table_id_or_name: str) -> T
     """Get details about a specific table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
 
@@ -63,6 +65,7 @@ async def list_columns(
     """List columns in a table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         limit: Maximum number of results to return.
@@ -87,6 +90,7 @@ async def get_column(client: CodaClient, doc_id: str, table_id_or_name: str, col
     """Get details about a specific column.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         column_id_or_name: ID or name of the column.
@@ -108,6 +112,7 @@ async def push_button(
     """Push a button in a table cell.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         row_id_or_name: ID or name of the row containing the button.

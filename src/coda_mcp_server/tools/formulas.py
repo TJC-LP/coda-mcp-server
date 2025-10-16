@@ -16,6 +16,7 @@ async def list_formulas(
     """List named formulas in a doc.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         limit: Maximum number of results to return.
         page_token: An opaque token to fetch the next page of results.
@@ -32,6 +33,7 @@ async def get_formula(client: CodaClient, doc_id: str, formula_id_or_name: str) 
     """Get details about a specific formula.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         formula_id_or_name: ID or name of the formula.
 
