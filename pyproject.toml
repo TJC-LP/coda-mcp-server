@@ -12,7 +12,7 @@ authors = [
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11,<3.15"
 keywords = ["coda", "mcp", "server", "api", "integration", "automation"]
 classifiers = [
     "Development Status :: 4 - Beta",

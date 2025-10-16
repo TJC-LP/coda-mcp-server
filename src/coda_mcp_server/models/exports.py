@@ -103,3 +103,11 @@ class PageContentExportStatusResponse(BaseModel):
         None,
         description="Message describing an error, if this export failed.",
     )
+    content: Optional[str] = Field(
+        None,
+        description=(
+            "The actual exported page content (HTML or markdown). "
+            "This is automatically downloaded when status is 'complete'. "
+            "Note: This field is a convenience enhancement not in the OpenAPI spec."
+        ),
+    )

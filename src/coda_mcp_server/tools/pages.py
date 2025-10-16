@@ -1,5 +1,7 @@
 """Page-related tools for Coda."""
 
+import aiohttp
+
 from ..client import CodaClient, clean_params
 from ..models import Method
 from ..models.exports import (
@@ -140,15 +142,24 @@ async def get_page_content_export_status(
         - status: "inProgress", "complete", or "failed"
         - href: URL to check status again
         - download_link: (when status="complete") Temporary URL where content was downloaded from
+        - content: (when status="complete") The actual exported page content (HTML or markdown)
         - error: (when status="failed") Error message describing what went wrong
 
     Next steps:
     - If status="inProgress": Wait 1-2 seconds and poll again
-    - If status="complete": Use the download_link to download the content
+    - If status="complete": The content field contains the exported page content
     - If status="failed": Check error message and handle accordingly
     """
     result = await client.request(Method.GET, f"docs/{doc_id}/pages/{page_id_or_name}/export/{request_id}")
-    return PageContentExportStatusResponse.model_validate(result)
+    response = PageContentExportStatusResponse.model_validate(result)
+
+    # Auto-fetch content when export is complete
+    if response.status == "complete" and response.download_link:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(response.download_link) as http_response:
+                response.content = await http_response.text()
+
+    return response
 
 
 async def create_page(
