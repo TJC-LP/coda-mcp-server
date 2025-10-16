@@ -1,33 +1,21 @@
 """Page-related tools for Coda."""
 
-from typing import Any, Literal
-
-import aiohttp
-from typing_extensions import TypedDict
-
 from ..client import CodaClient, clean_params
 from ..models import Method
-
-
-class CanvasContent(TypedDict):
-    """Canvas content."""
-
-    format: Literal["html", "markdown"]
-    content: str
-
-
-class PageContent(TypedDict):
-    """Page content."""
-
-    type: Literal["canvas"]
-    canvasContent: CanvasContent
-
-
-class PageContentUpdate(TypedDict):
-    """Page content update."""
-
-    insertionMode: Literal["append", "replace"]
-    canvasContent: CanvasContent
+from ..models.exports import (
+    BeginPageContentExportRequest,
+    BeginPageContentExportResponse,
+    PageContentExportStatusResponse,
+)
+from ..models.pages import (
+    Page,
+    PageCreate,
+    PageCreateResult,
+    PageDeleteResult,
+    PageList,
+    PageUpdate,
+    PageUpdateResult,
+)
 
 
 async def list_pages(
@@ -35,73 +23,51 @@ async def list_pages(
     doc_id: str,
     limit: int | None = None,
     page_token: str | None = None,
-) -> Any:
+) -> PageList:
     """List pages in a Coda doc."""
     params = {
         "limit": limit,
         "pageToken": page_token,
     }
-    return await client.request(Method.GET, f"docs/{doc_id}/pages", params=clean_params(params))
+    result = await client.request(Method.GET, f"docs/{doc_id}/pages", params=clean_params(params))
+    return PageList.model_validate(result)
 
 
-async def get_page(client: CodaClient, doc_id: str, page_id_or_name: str) -> Any:
+async def get_page(client: CodaClient, doc_id: str, page_id_or_name: str) -> Page:
     """Get details about a page."""
-    return await client.request(Method.GET, f"docs/{doc_id}/pages/{page_id_or_name}")
+    result = await client.request(Method.GET, f"docs/{doc_id}/pages/{page_id_or_name}")
+    return Page.model_validate(result)
 
 
 async def update_page(
     client: CodaClient,
     doc_id: str,
     page_id_or_name: str,
-    name: str | None = None,
-    subtitle: str | None = None,
-    icon_name: str | None = None,
-    image_url: str | None = None,
-    is_hidden: bool | None = None,
-    content_update: PageContentUpdate | None = None,
-) -> Any:
+    page_update: PageUpdate,
+) -> PageUpdateResult:
     """Update properties of a page.
 
     Args:
         client: The Coda client instance.
         doc_id: The ID of the doc.
         page_id_or_name: The ID or name of the page.
-        name: Name of the page.
-        subtitle: Subtitle of the page.
-        icon_name: Name of the icon.
-        image_url: URL of the cover image.
-        is_hidden: Whether the page is hidden.
-        content_update: Content update payload, e.g.:
-            {
-                "insertionMode": "append",
-                "canvasContent": {
-                    "format": "html",
-                    "content": "<p><b>This</b> is rich text</p>"
-                }
-            }
+        page_update: PageUpdate model with all page update parameters.
 
     Returns:
-        API response from Coda.
+        PageUpdateResult with the updated page's metadata.
     """
-    data: dict[str, Any] = {}
-    if name is not None:
-        data["name"] = name
-    if subtitle is not None:
-        data["subtitle"] = subtitle
-    if icon_name is not None:
-        data["iconName"] = icon_name
-    if image_url is not None:
-        data["imageUrl"] = image_url
-    if is_hidden is not None:
-        data["isHidden"] = is_hidden
-    if content_update is not None:
-        data["contentUpdate"] = content_update
-    return await client.request(Method.PUT, f"docs/{doc_id}/pages/{page_id_or_name}", json=data)
+    result = await client.request(
+        Method.PUT,
+        f"docs/{doc_id}/pages/{page_id_or_name}",
+        json=page_update.model_dump(by_alias=True, exclude_none=True),
+    )
+    return PageUpdateResult.model_validate(result)
 
 
-async def delete_page(client: CodaClient, doc_id: str, page_id_or_name: str) -> Any:
+async def delete_page(client: CodaClient, doc_id: str, page_id_or_name: str) -> PageDeleteResult:
     """Delete a page from a doc."""
-    return await client.request(Method.DELETE, f"docs/{doc_id}/pages/{page_id_or_name}")
+    result = await client.request(Method.DELETE, f"docs/{doc_id}/pages/{page_id_or_name}")
+    return PageDeleteResult.model_validate(result)
 
 
 # Page content export endpoints - expose async workflow to LLM for better error handling
@@ -109,8 +75,11 @@ async def delete_page(client: CodaClient, doc_id: str, page_id_or_name: str) -> 
 
 
 async def begin_page_content_export(
-    client: CodaClient, doc_id: str, page_id_or_name: str, output_format: str = "html"
-) -> Any:
+    client: CodaClient,
+    doc_id: str,
+    page_id_or_name: str,
+    export_request: BeginPageContentExportRequest,
+) -> BeginPageContentExportResponse:
     """Initiate an export of page content.
 
     This starts an asynchronous export process. The export is not immediate - you must poll
@@ -130,22 +99,25 @@ async def begin_page_content_export(
         client: The Coda client instance.
         doc_id: ID of the doc.
         page_id_or_name: ID or name of the page.
-        output_format: Format for export - either "html" or "markdown".
+        export_request: BeginPageContentExportRequest model with output format.
 
     Returns:
-        Export response with:
+        BeginPageContentExportResponse with:
         - id: The request ID to use for polling status
         - status: Initial status (usually "inProgress")
         - href: URL to check export status
     """
-    data = {"outputFormat": output_format}
-    result = await client.request(Method.POST, f"docs/{doc_id}/pages/{page_id_or_name}/export", json=data)
-    return result
+    result = await client.request(
+        Method.POST,
+        f"docs/{doc_id}/pages/{page_id_or_name}/export",
+        json=export_request.model_dump(by_alias=True, exclude_none=True),
+    )
+    return BeginPageContentExportResponse.model_validate(result)
 
 
 async def get_page_content_export_status(
     client: CodaClient, doc_id: str, page_id_or_name: str, request_id: str
-) -> Any:
+) -> PageContentExportStatusResponse:
     """Check the status of a page content export.
 
     Poll this endpoint to check if your export (initiated with begin_page_content_export) is ready.
@@ -163,73 +135,40 @@ async def get_page_content_export_status(
         request_id: The request ID returned from begin_page_content_export.
 
     Returns:
-        Status response with:
+        PageContentExportStatusResponse with:
         - id: The request ID
         - status: "inProgress", "complete", or "failed"
         - href: URL to check status again
-        - downloadLink: (when status="complete") Temporary URL where content was downloaded from
-        - content: (when status="complete") The actual exported page content (HTML or markdown)
+        - download_link: (when status="complete") Temporary URL where content was downloaded from
         - error: (when status="failed") Error message describing what went wrong
 
     Next steps:
     - If status="inProgress": Wait 1-2 seconds and poll again
-    - If status="complete": The content field contains the exported page content
+    - If status="complete": Use the download_link to download the content
     - If status="failed": Check error message and handle accordingly
     """
     result = await client.request(Method.GET, f"docs/{doc_id}/pages/{page_id_or_name}/export/{request_id}")
-
-    # Auto-fetch content when export is complete
-    if result.get("status") == "complete" and result.get("downloadLink"):
-        download_url = result["downloadLink"]
-        async with aiohttp.ClientSession() as session:
-            async with session.get(download_url) as response:
-                result["content"] = await response.text()
-
-    return result
+    return PageContentExportStatusResponse.model_validate(result)
 
 
 async def create_page(
     client: CodaClient,
     doc_id: str,
-    name: str,
-    subtitle: str | None = None,
-    icon_name: str | None = None,
-    image_url: str | None = None,
-    parent_page_id: str | None = None,
-    page_content: PageContent | None = None,
-) -> Any:
+    page_create: PageCreate,
+) -> PageCreateResult:
     """Create a new page in a doc.
 
     Args:
         client: The Coda client instance.
         doc_id: The ID of the doc.
-        name: Name of the page.
-        subtitle: Subtitle of the page.
-        icon_name: Name of the icon.
-        image_url: URL of the cover image.
-        parent_page_id: The ID of this new page's parent, if creating a subpage.
-        page_content: Content to initialize the page with (rich text or embed), e.g.:
-            {
-                "type": "canvas",
-                "canvasContent": {
-                    "format": "html",
-                    "content": "<p><b>This</b> is rich text</p>"
-                }
-            }
+        page_create: PageCreate model with all page creation parameters.
 
     Returns:
-        API response from Coda.
+        PageCreateResult with the created page's metadata.
     """
-    data: dict[str, Any] = {"name": name}
-    if subtitle is not None:
-        data["subtitle"] = subtitle
-    if icon_name is not None:
-        data["iconName"] = icon_name
-    if image_url is not None:
-        data["imageUrl"] = image_url
-    if parent_page_id is not None:
-        data["parentPageId"] = parent_page_id
-    if page_content is not None:
-        data["pageContent"] = page_content
-
-    return await client.request(Method.POST, f"docs/{doc_id}/pages", json=data)
+    result = await client.request(
+        Method.POST,
+        f"docs/{doc_id}/pages",
+        json=page_create.model_dump(by_alias=True, exclude_none=True),
+    )
+    return PageCreateResult.model_validate(result)

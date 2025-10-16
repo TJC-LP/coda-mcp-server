@@ -1,24 +1,21 @@
 """Row-related MCP tools for Coda tables."""
 
-from typing import Any, Literal
-
-from typing_extensions import TypedDict
+from typing import Literal
 
 from ..client import CodaClient, clean_params
-from ..models import Method
-
-
-class CellValue(TypedDict, total=False):
-    """Cell value for row operations."""
-
-    column: str  # Column ID or name
-    value: Any  # The value to set
-
-
-class RowUpdate(TypedDict, total=False):
-    """Row data for upsert/update operations."""
-
-    cells: list[CellValue]  # Cell values to update
+from ..models import (
+    Method,
+    Row,
+    RowDeleteResult,
+    RowEdit,
+    RowList,
+    RowsDelete,
+    RowsDeleteResult,
+    RowsUpsert,
+    RowsUpsertResult,
+    RowUpdate,
+    RowUpdateResult,
+)
 
 
 async def list_rows(
@@ -33,10 +30,11 @@ async def list_rows(
     limit: int | None = None,
     page_token: str | None = None,
     sync_token: str | None = None,
-) -> Any:
+) -> RowList:
     """List rows in a table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         query: Query to filter rows (e.g., 'Status="Complete"').
@@ -49,7 +47,7 @@ async def list_rows(
         sync_token: Token for incremental sync of changes.
 
     Returns:
-        List of rows with their values.
+        RowList with rows and pagination metadata.
     """
     params = {
         "query": query,
@@ -61,9 +59,10 @@ async def list_rows(
         "pageToken": page_token,
         "syncToken": sync_token,
     }
-    return await client.request(
+    result = await client.request(
         Method.GET, f"docs/{doc_id}/tables/{table_id_or_name}/rows", params=clean_params(params)
     )
+    return RowList.model_validate(result)
 
 
 async def get_row(
@@ -73,10 +72,11 @@ async def get_row(
     row_id_or_name: str,
     use_column_names: bool | None = None,
     value_format: Literal["simple", "simpleWithArrays", "rich"] | None = None,
-) -> Any:
+) -> Row:
     """Get a specific row from a table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         row_id_or_name: ID or name of the row.
@@ -90,22 +90,24 @@ async def get_row(
         "useColumnNames": use_column_names,
         "valueFormat": value_format,
     }
-    return await client.request(
+    result = await client.request(
         Method.GET, f"docs/{doc_id}/tables/{table_id_or_name}/rows/{row_id_or_name}", params=clean_params(params)
     )
+    return Row.model_validate(result)
 
 
 async def upsert_rows(
     client: CodaClient,
     doc_id: str,
     table_id_or_name: str,
-    rows: list[RowUpdate],
+    rows: list[RowEdit],
     key_columns: list[str] | None = None,
     disable_parsing: bool | None = None,
-) -> Any:
+) -> RowsUpsertResult:
     """Insert or update rows in a table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         rows: List of rows to upsert. Each row should have a 'cells' array with column/value pairs.
@@ -113,14 +115,21 @@ async def upsert_rows(
         disable_parsing: If true, cell values won't be parsed (e.g., URLs won't become links).
 
     Returns:
-        Result of the upsert operation.
+        RowsUpsertResult with the result of the upsert operation.
     """
-    data = {
-        "rows": rows,
-        "keyColumns": key_columns,
-        "disableParsing": disable_parsing,
-    }
-    return await client.request(Method.POST, f"docs/{doc_id}/tables/{table_id_or_name}/rows", json=clean_params(data))
+    # Build the request model
+    request = RowsUpsert(rows=rows, key_columns=key_columns)
+
+    # Add disableParsing as a query parameter if provided
+    params = {"disableParsing": disable_parsing} if disable_parsing is not None else None
+
+    result = await client.request(
+        Method.POST,
+        f"docs/{doc_id}/tables/{table_id_or_name}/rows",
+        json=request.model_dump(by_alias=True, exclude_none=True),
+        params=clean_params(params) if params else None,
+    )
+    return RowsUpsertResult.model_validate(result)
 
 
 async def update_row(
@@ -128,12 +137,13 @@ async def update_row(
     doc_id: str,
     table_id_or_name: str,
     row_id_or_name: str,
-    row: RowUpdate,
+    row: RowEdit,
     disable_parsing: bool | None = None,
-) -> Any:
+) -> RowUpdateResult:
     """Update a specific row in a table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         row_id_or_name: ID or name of the row to update.
@@ -141,29 +151,39 @@ async def update_row(
         disable_parsing: If true, cell values won't be parsed.
 
     Returns:
-        Updated row data.
+        RowUpdateResult with the updated row data.
     """
-    data = {
-        "row": row,
-        "disableParsing": disable_parsing,
-    }
-    return await client.request(
-        Method.PUT, f"docs/{doc_id}/tables/{table_id_or_name}/rows/{row_id_or_name}", json=clean_params(data)
+    # Build the request model
+    request = RowUpdate(row=row)
+
+    # Add disableParsing as a query parameter if provided
+    params = {"disableParsing": disable_parsing} if disable_parsing is not None else None
+
+    result = await client.request(
+        Method.PUT,
+        f"docs/{doc_id}/tables/{table_id_or_name}/rows/{row_id_or_name}",
+        json=request.model_dump(by_alias=True, exclude_none=True),
+        params=clean_params(params) if params else None,
     )
+    return RowUpdateResult.model_validate(result)
 
 
-async def delete_row(client: CodaClient, doc_id: str, table_id_or_name: str, row_id_or_name: str) -> Any:
+async def delete_row(
+    client: CodaClient, doc_id: str, table_id_or_name: str, row_id_or_name: str
+) -> RowDeleteResult:
     """Delete a specific row from a table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         row_id_or_name: ID or name of the row to delete.
 
     Returns:
-        Result of the deletion.
+        RowDeleteResult with the result of the deletion.
     """
-    return await client.request(Method.DELETE, f"docs/{doc_id}/tables/{table_id_or_name}/rows/{row_id_or_name}")
+    result = await client.request(Method.DELETE, f"docs/{doc_id}/tables/{table_id_or_name}/rows/{row_id_or_name}")
+    return RowDeleteResult.model_validate(result)
 
 
 async def delete_rows(
@@ -171,16 +191,24 @@ async def delete_rows(
     doc_id: str,
     table_id_or_name: str,
     row_ids: list[str],
-) -> Any:
+) -> RowsDeleteResult:
     """Delete multiple rows from a table.
 
     Args:
+        client: The Coda client instance.
         doc_id: ID of the doc.
         table_id_or_name: ID or name of the table.
         row_ids: List of row IDs to delete.
 
     Returns:
-        Result of the deletion operation.
+        RowsDeleteResult with the result of the deletion operation.
     """
-    data = {"rowIds": row_ids}
-    return await client.request(Method.DELETE, f"docs/{doc_id}/tables/{table_id_or_name}/rows", json=data)
+    # Build the request model
+    request = RowsDelete(row_ids=row_ids)
+
+    result = await client.request(
+        Method.DELETE,
+        f"docs/{doc_id}/tables/{table_id_or_name}/rows",
+        json=request.model_dump(by_alias=True, exclude_none=True),
+    )
+    return RowsDeleteResult.model_validate(result)

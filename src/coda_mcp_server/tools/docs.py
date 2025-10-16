@@ -1,38 +1,21 @@
 """Doc-related MCP tools for Coda API."""
 
-from typing import Any, Literal
-from typing_extensions import TypedDict
+from typing import Any, Dict
 
 from ..client import CodaClient, clean_params
-from ..models import Method
+from ..models import (
+    Doc,
+    DocCreate,
+    DocDelete,
+    DocList,
+    DocumentCreationResult,
+    DocUpdate,
+    DocUpdateResult,
+    Method,
+)
 
 
-class CanvasContent(TypedDict):
-    """Canvas content."""
-
-    format: Literal["html", "markdown"]
-    content: str
-
-
-class PageContent(TypedDict):
-    """Page content."""
-
-    type: Literal["canvas"]
-    canvasContent: CanvasContent
-
-
-class InitialPage(TypedDict, total=False):
-    """Initial page."""
-
-    name: str
-    subtitle: str
-    iconName: str
-    imageUrl: str
-    parentPageId: str
-    pageContent: PageContent
-
-
-async def whoami(client: CodaClient) -> Any:
+async def whoami(client: CodaClient) -> Dict[str, Any]:
     """Get information about the current authenticated user.
 
     Returns:
@@ -41,20 +24,35 @@ async def whoami(client: CodaClient) -> Any:
     return await client.request(Method.GET, "whoami")
 
 
-async def get_doc_info(client: CodaClient, doc_id: str) -> Any:
+async def get_doc_info(client: CodaClient, doc_id: str) -> Doc:
     """Get info about a particular doc."""
-    return await client.request(Method.GET, f"docs/{doc_id}")
+    result = await client.request(Method.GET, f"docs/{doc_id}")
+    return Doc.model_validate(result)
 
 
-async def delete_doc(client: CodaClient, doc_id: str) -> Any:
+async def delete_doc(client: CodaClient, doc_id: str) -> DocDelete:
     """Delete a doc. USE WITH CAUTION."""
-    return await client.request(Method.DELETE, f"docs/{doc_id}")
+    result = await client.request(Method.DELETE, f"docs/{doc_id}")
+    return DocDelete.model_validate(result)
 
 
-async def update_doc(client: CodaClient, doc_id: str, title: str | None = None, icon_name: str | None = None) -> Any:
-    """Update properties of a doc."""
-    data = {"title": title, "iconName": icon_name}
-    return await client.request(Method.PATCH, f"docs/{doc_id}", json=clean_params(data))
+async def update_doc(client: CodaClient, doc_id: str, request: DocUpdate) -> DocUpdateResult:
+    """Update properties of a doc.
+
+    Args:
+        client: The Coda client instance.
+        doc_id: ID of the doc to update.
+        request: DocUpdate model with update parameters.
+
+    Returns:
+        DocUpdateResult with the update result.
+    """
+    result = await client.request(
+        Method.PATCH,
+        f"docs/{doc_id}",
+        json=request.model_dump(by_alias=True, exclude_none=True),
+    )
+    return DocUpdateResult.model_validate(result)
 
 
 async def list_docs(
@@ -69,7 +67,7 @@ async def list_docs(
     folder_id: str | None = None,
     limit: int | None = None,
     page_token: str | None = None,
-) -> Any:
+) -> DocList:
     """List available docs.
 
     Returns a list of Coda docs accessible by the user, and which they have opened at least once.
@@ -89,7 +87,7 @@ async def list_docs(
         page_token: An opaque token used to fetch the next page of results.
 
     Returns:
-        Dictionary containing document list and pagination info.
+        DocList containing document list and pagination info.
     """
     params = {
         "isOwner": str(is_owner).lower(),  # Convert to "true" or "false"
@@ -103,43 +101,23 @@ async def list_docs(
         "limit": limit,
         "pageToken": page_token,
     }
-    return await client.request(Method.GET, "docs", params=clean_params(params))
+    result = await client.request(Method.GET, "docs", params=clean_params(params))
+    return DocList.model_validate(result)
 
 
-async def create_doc(
-    client: CodaClient,
-    title: str,
-    source_doc: str | None = None,
-    timezone: str | None = None,
-    folder_id: str | None = None,
-    workspace_id: str | None = None,
-    initial_page: InitialPage | None = None,
-) -> Any:
+async def create_doc(client: CodaClient, request: DocCreate) -> DocumentCreationResult:
     """Create a new Coda doc.
 
     Args:
-        title: Title of the new doc.
-        source_doc: Optional ID of a doc to copy.
-        timezone: Timezone for the doc, e.g. 'America/Los_Angeles'.
-        folder_id: ID of the folder to place the doc in.
-        workspace_id: ID of the workspace to place the doc in.
-        initial_page: Configuration for the initial page of the doc.
-            Can include name, subtitle, iconName, imageUrl, parentPageId, and pageContent.
+        client: The Coda client instance.
+        request: DocCreate model with all doc creation parameters.
 
     Returns:
-        Dictionary containing information about the newly created doc.
+        DocumentCreationResult with the created doc's metadata.
     """
-    request_data: dict[str, Any] = {"title": title}
-
-    if source_doc:
-        request_data["sourceDoc"] = source_doc
-    if timezone:
-        request_data["timezone"] = timezone
-    if folder_id:
-        request_data["folderId"] = folder_id
-    if workspace_id:
-        request_data["workspaceId"] = workspace_id
-    if initial_page:
-        request_data["initialPage"] = initial_page
-
-    return await client.request(Method.POST, "docs", json=request_data)
+    result = await client.request(
+        Method.POST,
+        "docs",
+        json=request.model_dump(by_alias=True, exclude_none=True),
+    )
+    return DocumentCreationResult.model_validate(result)

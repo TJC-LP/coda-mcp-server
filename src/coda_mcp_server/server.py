@@ -6,17 +6,45 @@ from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 from .client import CodaClient
+from .models import (
+    BeginPageContentExportRequest,
+    BeginPageContentExportResponse,
+    Column,
+    ColumnList,
+    Doc,
+    DocCreate,
+    DocDelete,
+    DocList,
+    DocumentCreationResult,
+    DocUpdate,
+    DocUpdateResult,
+    InitialPage,
+    Page,
+    PageContent,
+    PageContentExportStatusResponse,
+    PageContentUpdate,
+    PageCreate,
+    PageCreateResult,
+    PageDeleteResult,
+    PageList,
+    PageUpdate,
+    PageUpdateResult,
+    PushButtonResult,
+    Row,
+    RowDeleteResult,
+    RowEdit,
+    RowList,
+    RowsDeleteResult,
+    RowsUpsertResult,
+    RowUpdateResult,
+    Table,
+    TableList,
+)
 from .tools import docs, formulas, pages, rows, tables
 
 # Central MCP server instance
 mcp = FastMCP("coda", dependencies=["aiohttp"])
 client = CodaClient()
-
-# Import TypedDicts needed for type hints
-from .tools.docs import InitialPage, PageContent
-from .tools.pages import PageContentUpdate
-from .tools.rows import RowUpdate
-
 
 # ============================================================================
 # Doc Tools
@@ -38,7 +66,7 @@ async def whoami() -> Any:
 @mcp.tool(
     description="Get detailed metadata about a specific Coda doc by its ID"
 )
-async def get_doc_info(doc_id: str) -> Any:
+async def get_doc_info(doc_id: str) -> Doc:
     """Get info about a particular doc."""
     return await docs.get_doc_info(client, doc_id)
 
@@ -46,7 +74,7 @@ async def get_doc_info(doc_id: str) -> Any:
 @mcp.tool(
     description="Permanently delete a Coda doc by ID - use with extreme caution as this cannot be undone"
 )
-async def delete_doc(doc_id: str) -> Any:
+async def delete_doc(doc_id: str) -> DocDelete:
     """Delete a doc. USE WITH CAUTION."""
     return await docs.delete_doc(client, doc_id)
 
@@ -54,13 +82,17 @@ async def delete_doc(doc_id: str) -> Any:
 @mcp.tool(
     description="Update properties of a Coda doc including title and icon"
 )
-async def update_doc(doc_id: str, title: str | None = None, icon_name: str | None = None) -> Any:
+async def update_doc(doc_id: str, title: str | None = None, icon_name: str | None = None) -> DocUpdateResult:
     """Update properties of a doc."""
-    return await docs.update_doc(client, doc_id, title, icon_name)
+    request = DocUpdate(title=title, icon_name=icon_name)
+    return await docs.update_doc(client, doc_id, request)
 
 
 @mcp.tool(
-    description="List Coda docs accessible by the user with filtering options - returns docs in reverse chronological order by most recent activity"
+    description=(
+        "List Coda docs accessible by the user with filtering options - "
+        "returns docs in reverse chronological order by most recent activity"
+    )
 )
 async def list_docs(
     is_owner: bool,
@@ -73,7 +105,7 @@ async def list_docs(
     folder_id: str | None = None,
     limit: int | None = None,
     page_token: str | None = None,
-) -> Any:
+) -> DocList:
     """List available docs.
 
     Returns a list of Coda docs accessible by the user, and which they have opened at least once.
@@ -96,12 +128,25 @@ async def list_docs(
         Dictionary containing document list and pagination info.
     """
     return await docs.list_docs(
-        client, is_owner, is_published, query, source_doc, is_starred, in_gallery, workspace_id, folder_id, limit, page_token
+        client,
+        is_owner,
+        is_published,
+        query,
+        source_doc,
+        is_starred,
+        in_gallery,
+        workspace_id,
+        folder_id,
+        limit,
+        page_token,
     )
 
 
 @mcp.tool(
-    description="Create a new Coda doc with optional configuration including title, timezone, folder/workspace placement, and initial page content"
+    description=(
+        "Create a new Coda doc with optional configuration including title, timezone, "
+        "folder/workspace placement, and initial page content"
+    )
 )
 async def create_doc(
     title: str,
@@ -110,7 +155,7 @@ async def create_doc(
     folder_id: str | None = None,
     workspace_id: str | None = None,
     initial_page: InitialPage | None = None,
-) -> Any:
+) -> DocumentCreationResult:
     """Create a new Coda doc.
 
     Args:
@@ -125,7 +170,14 @@ async def create_doc(
     Returns:
         Dictionary containing information about the newly created doc.
     """
-    return await docs.create_doc(client, title, source_doc, timezone, folder_id, workspace_id, initial_page)
+    request = DocCreate(
+        title=title,
+        source_doc=source_doc,
+        timezone=timezone,
+        folder_id=folder_id,
+        initial_page=initial_page,
+    )
+    return await docs.create_doc(client, request)
 
 
 # ============================================================================
@@ -140,7 +192,7 @@ async def list_pages(
     doc_id: str,
     limit: int | None = None,
     page_token: str | None = None,
-) -> Any:
+) -> PageList:
     """List pages in a Coda doc."""
     return await pages.list_pages(client, doc_id, limit, page_token)
 
@@ -148,13 +200,16 @@ async def list_pages(
 @mcp.tool(
     description="Get detailed metadata about a specific page by its ID or name"
 )
-async def get_page(doc_id: str, page_id_or_name: str) -> Any:
+async def get_page(doc_id: str, page_id_or_name: str) -> Page:
     """Get details about a page."""
     return await pages.get_page(client, doc_id, page_id_or_name)
 
 
 @mcp.tool(
-    description="Update properties and content of a page including name, subtitle, icon, visibility, and HTML/markdown content"
+    description=(
+        "Update properties and content of a page including name, subtitle, icon, "
+        "visibility, and HTML/markdown content"
+    )
 )
 async def update_page(
     doc_id: str,
@@ -165,7 +220,7 @@ async def update_page(
     image_url: str | None = None,
     is_hidden: bool | None = None,
     content_update: PageContentUpdate | None = None,
-) -> Any:
+) -> PageUpdateResult:
     """Update properties of a page.
 
     Args:
@@ -188,21 +243,34 @@ async def update_page(
     Returns:
         API response from Coda.
     """
-    return await pages.update_page(client, doc_id, page_id_or_name, name, subtitle, icon_name, image_url, is_hidden, content_update)
+    page_update = PageUpdate(
+        name=name,
+        subtitle=subtitle,
+        icon_name=icon_name,
+        image_url=image_url,
+        is_hidden=is_hidden,
+        content_update=content_update,
+    )
+    return await pages.update_page(client, doc_id, page_id_or_name, page_update)
 
 
 @mcp.tool(
     description="Delete a page from a Coda doc by its ID or name"
 )
-async def delete_page(doc_id: str, page_id_or_name: str) -> Any:
+async def delete_page(doc_id: str, page_id_or_name: str) -> PageDeleteResult:
     """Delete a page from a doc."""
     return await pages.delete_page(client, doc_id, page_id_or_name)
 
 
 @mcp.tool(
-    description="Start an async export of page content in HTML or markdown format - returns request ID to poll for completion with get_page_content_export_status"
+    description=(
+        "Start an async export of page content in HTML or markdown format - "
+        "returns request ID to poll for completion with get_page_content_export_status"
+    )
 )
-async def begin_page_content_export(doc_id: str, page_id_or_name: str, output_format: str = "html") -> Any:
+async def begin_page_content_export(
+    doc_id: str, page_id_or_name: str, output_format: str = "html"
+) -> BeginPageContentExportResponse:
     """Initiate an export of page content.
 
     This starts an asynchronous export process. The export is not immediate - you must poll
@@ -229,13 +297,19 @@ async def begin_page_content_export(doc_id: str, page_id_or_name: str, output_fo
         - status: Initial status (usually "inProgress")
         - href: URL to check export status
     """
-    return await pages.begin_page_content_export(client, doc_id, page_id_or_name, output_format)
+    export_request = BeginPageContentExportRequest(output_format=output_format)  # type: ignore
+    return await pages.begin_page_content_export(client, doc_id, page_id_or_name, export_request)
 
 
 @mcp.tool(
-    description="Check status of a page export and auto-download content when ready - poll this after starting export with begin_page_content_export"
+    description=(
+        "Check status of a page export and auto-download content when ready - "
+        "poll this after starting export with begin_page_content_export"
+    )
 )
-async def get_page_content_export_status(doc_id: str, page_id_or_name: str, request_id: str) -> Any:
+async def get_page_content_export_status(
+    doc_id: str, page_id_or_name: str, request_id: str
+) -> PageContentExportStatusResponse:
     """Check the status of a page content export.
 
     Poll this endpoint to check if your export (initiated with begin_page_content_export) is ready.
@@ -269,7 +343,10 @@ async def get_page_content_export_status(doc_id: str, page_id_or_name: str, requ
 
 
 @mcp.tool(
-    description="Create a new page in a Coda doc with optional subtitle, icon, parent page, and initial HTML/markdown content"
+    description=(
+        "Create a new page in a Coda doc with optional subtitle, icon, parent page, "
+        "and initial HTML/markdown content"
+    )
 )
 async def create_page(
     doc_id: str,
@@ -279,7 +356,7 @@ async def create_page(
     image_url: str | None = None,
     parent_page_id: str | None = None,
     page_content: PageContent | None = None,
-) -> Any:
+) -> PageCreateResult:
     """Create a new page in a doc.
 
     Args:
@@ -301,7 +378,15 @@ async def create_page(
     Returns:
         API response from Coda.
     """
-    return await pages.create_page(client, doc_id, name, subtitle, icon_name, image_url, parent_page_id, page_content)
+    page_create = PageCreate(
+        name=name,
+        subtitle=subtitle,
+        icon_name=icon_name,
+        image_url=image_url,
+        parent_page_id=parent_page_id,
+        page_content=page_content,
+    )
+    return await pages.create_page(client, doc_id, page_create)
 
 
 # ============================================================================
@@ -318,7 +403,7 @@ async def list_tables(
     page_token: str | None = None,
     sort_by: Literal["name"] | None = None,
     table_types: list[str] | None = None,
-) -> Any:
+) -> TableList:
     """List tables in a Coda doc.
 
     Args:
@@ -337,7 +422,7 @@ async def list_tables(
 @mcp.tool(
     description="Get detailed information about a specific table including its schema, columns, and metadata"
 )
-async def get_table(doc_id: str, table_id_or_name: str) -> Any:
+async def get_table(doc_id: str, table_id_or_name: str) -> Table:
     """Get details about a specific table.
 
     Args:
@@ -359,7 +444,7 @@ async def list_columns(
     limit: int | None = None,
     page_token: str | None = None,
     visible_only: bool | None = None,
-) -> Any:
+) -> ColumnList:
     """List columns in a table.
 
     Args:
@@ -378,7 +463,7 @@ async def list_columns(
 @mcp.tool(
     description="Get detailed information about a specific column including its type, format, and formula"
 )
-async def get_column(doc_id: str, table_id_or_name: str, column_id_or_name: str) -> Any:
+async def get_column(doc_id: str, table_id_or_name: str, column_id_or_name: str) -> Column:
     """Get details about a specific column.
 
     Args:
@@ -400,7 +485,7 @@ async def push_button(
     table_id_or_name: str,
     row_id_or_name: str,
     column_id_or_name: str,
-) -> Any:
+) -> PushButtonResult:
     """Push a button in a table cell.
 
     Args:
@@ -421,7 +506,10 @@ async def push_button(
 
 
 @mcp.tool(
-    description="List rows in a table with optional filtering, sorting, and pagination - returns row data with cell values"
+    description=(
+        "List rows in a table with optional filtering, sorting, and pagination - "
+        "returns row data with cell values"
+    )
 )
 async def list_rows(
     doc_id: str,
@@ -434,7 +522,7 @@ async def list_rows(
     limit: int | None = None,
     page_token: str | None = None,
     sync_token: str | None = None,
-) -> Any:
+) -> RowList:
     """List rows in a table.
 
     Args:
@@ -453,7 +541,17 @@ async def list_rows(
         List of rows with their values.
     """
     return await rows.list_rows(
-        client, doc_id, table_id_or_name, query, sort_by, use_column_names, value_format, visible_only, limit, page_token, sync_token
+        client,
+        doc_id,
+        table_id_or_name,
+        query,
+        sort_by,
+        use_column_names,
+        value_format,
+        visible_only,
+        limit,
+        page_token,
+        sync_token,
     )
 
 
@@ -466,7 +564,7 @@ async def get_row(
     row_id_or_name: str,
     use_column_names: bool | None = None,
     value_format: Literal["simple", "simpleWithArrays", "rich"] | None = None,
-) -> Any:
+) -> Row:
     """Get a specific row from a table.
 
     Args:
@@ -488,10 +586,10 @@ async def get_row(
 async def upsert_rows(
     doc_id: str,
     table_id_or_name: str,
-    rows_data: list[RowUpdate],
+    rows_data: list[RowEdit],
     key_columns: list[str] | None = None,
     disable_parsing: bool | None = None,
-) -> Any:
+) -> RowsUpsertResult:
     """Insert or update rows in a table.
 
     Args:
@@ -514,9 +612,9 @@ async def update_row(
     doc_id: str,
     table_id_or_name: str,
     row_id_or_name: str,
-    row: RowUpdate,
+    row: RowEdit,
     disable_parsing: bool | None = None,
-) -> Any:
+) -> RowUpdateResult:
     """Update a specific row in a table.
 
     Args:
@@ -535,7 +633,7 @@ async def update_row(
 @mcp.tool(
     description="Delete a specific row from a table by its ID or name"
 )
-async def delete_row(doc_id: str, table_id_or_name: str, row_id_or_name: str) -> Any:
+async def delete_row(doc_id: str, table_id_or_name: str, row_id_or_name: str) -> RowDeleteResult:
     """Delete a specific row from a table.
 
     Args:
@@ -556,7 +654,7 @@ async def delete_rows(
     doc_id: str,
     table_id_or_name: str,
     row_ids: list[str],
-) -> Any:
+) -> RowsDeleteResult:
     """Delete multiple rows from a table.
 
     Args:

@@ -1,9 +1,11 @@
 """Table and column-related MCP tools for Coda."""
 
-from typing import Any, Literal
+from typing import Literal
 
 from ..client import CodaClient, clean_params
 from ..models import Method
+from ..models.rows import PushButtonResult
+from ..models.tables import Column, ColumnList, Table, TableList
 
 
 async def list_tables(
@@ -13,7 +15,7 @@ async def list_tables(
     page_token: str | None = None,
     sort_by: Literal["name"] | None = None,
     table_types: list[str] | None = None,
-) -> Any:
+) -> TableList:
     """List tables in a Coda doc.
 
     Args:
@@ -32,10 +34,11 @@ async def list_tables(
         "sortBy": sort_by,
         "tableTypes": table_types,
     }
-    return await client.request(Method.GET, f"docs/{doc_id}/tables", params=clean_params(params))
+    result = await client.request(Method.GET, f"docs/{doc_id}/tables", params=clean_params(params))
+    return TableList.model_validate(result)
 
 
-async def get_table(client: CodaClient, doc_id: str, table_id_or_name: str) -> Any:
+async def get_table(client: CodaClient, doc_id: str, table_id_or_name: str) -> Table:
     """Get details about a specific table.
 
     Args:
@@ -45,7 +48,8 @@ async def get_table(client: CodaClient, doc_id: str, table_id_or_name: str) -> A
     Returns:
         Table details including columns and metadata.
     """
-    return await client.request(Method.GET, f"docs/{doc_id}/tables/{table_id_or_name}")
+    result = await client.request(Method.GET, f"docs/{doc_id}/tables/{table_id_or_name}")
+    return Table.model_validate(result)
 
 
 async def list_columns(
@@ -55,7 +59,7 @@ async def list_columns(
     limit: int | None = None,
     page_token: str | None = None,
     visible_only: bool | None = None,
-) -> Any:
+) -> ColumnList:
     """List columns in a table.
 
     Args:
@@ -73,12 +77,13 @@ async def list_columns(
         "pageToken": page_token,
         "visibleOnly": visible_only,
     }
-    return await client.request(
+    result = await client.request(
         Method.GET, f"docs/{doc_id}/tables/{table_id_or_name}/columns", params=clean_params(params)
     )
+    return ColumnList.model_validate(result)
 
 
-async def get_column(client: CodaClient, doc_id: str, table_id_or_name: str, column_id_or_name: str) -> Any:
+async def get_column(client: CodaClient, doc_id: str, table_id_or_name: str, column_id_or_name: str) -> Column:
     """Get details about a specific column.
 
     Args:
@@ -89,7 +94,8 @@ async def get_column(client: CodaClient, doc_id: str, table_id_or_name: str, col
     Returns:
         Column details including format and formula.
     """
-    return await client.request(Method.GET, f"docs/{doc_id}/tables/{table_id_or_name}/columns/{column_id_or_name}")
+    result = await client.request(Method.GET, f"docs/{doc_id}/tables/{table_id_or_name}/columns/{column_id_or_name}")
+    return Column.model_validate(result)
 
 
 async def push_button(
@@ -98,7 +104,7 @@ async def push_button(
     table_id_or_name: str,
     row_id_or_name: str,
     column_id_or_name: str,
-) -> Any:
+) -> PushButtonResult:
     """Push a button in a table cell.
 
     Args:
@@ -110,8 +116,9 @@ async def push_button(
     Returns:
         Result of the button push operation.
     """
-    return await client.request(
+    result = await client.request(
         Method.POST,
         f"docs/{doc_id}/tables/{table_id_or_name}/rows/{row_id_or_name}/buttons/{column_id_or_name}",
         json={},
     )
+    return PushButtonResult.model_validate(result)
