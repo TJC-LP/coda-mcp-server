@@ -7,17 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-10-16
+
+### 🎉 Breaking Change - Snake Case Serialization
+
+**MCP responses now use snake_case for Python ecosystem compatibility.**
+
 ### Changed
-- **MCP outputs now use snake_case** for Python consistency
-  - All Pydantic models now serialize to snake_case by default (`serialize_by_alias=False`)
-  - API requests still use camelCase (explicitly with `by_alias=True` in client.py)
-  - Better Python/MCP ecosystem compatibility
-  - Example: `browser_link` instead of `browserLink` in MCP responses
+- **All MCP tool outputs now return snake_case fields**
+  - Example: `browser_link` instead of `browserLink`
+  - Example: `owner_name` instead of `ownerName`
+  - Example: `created_at` instead of `createdAt`
+- API requests still use camelCase (Coda API requirement)
+- Structured output schemas now declare snake_case fields
+
+### Added
+- **CodaBaseModel** with automatic case conversion
+  - `_normalize_input` validator accepts both camelCase and snake_case input
+  - `model_dump()` returns snake_case (default for MCP)
+  - `model_dump_camel()` returns camelCase (for API requests)
+- **Comprehensive test suite** (+31 tests, 13 → 44 total)
+  - normalize_keys() utility tests (6 tests)
+  - CodaBaseModel behavior tests (4 tests)
+  - Model validation tests (6 tests)
+  - HTTP request/response mocking (12 tests)
+  - Error handling tests (5 tests)
+- Enhanced test infrastructure
+  - 5 new fixtures in conftest.py
+  - Response factories for realistic test data
+  - tests/tools/ directory structure
 
 ### Technical
-- Updated all 83 Pydantic models with `serialize_by_alias=False` in ConfigDict
-- Maintains camelCase for Coda API compatibility via explicit serialization
-- Dual serialization: snake_case for MCP, camelCase for API
+- Updated all 83 Pydantic models to inherit from CodaBaseModel
+- Dual serialization: snake_case for MCP, camelCase for Coda API
+- Explicit serialization in client.py (via `model_dump_camel()`)
+- 100% test pass rate (44/44 tests)
+
+### BREAKING CHANGES
+
+⚠️ **MCP Response Fields:** All tool responses now use snake_case
+```python
+# Before (1.0.x)
+doc.browserLink
+doc.ownerName
+doc.createdAt
+
+# After (1.1.0)
+doc.browser_link
+doc.owner_name
+doc.created_at
+```
+
+⚠️ **Structured Output Schemas:** JSON schemas now declare snake_case fields
+- MCP clients relying on field names must update to snake_case
+- This aligns with Python conventions and MCP ecosystem standards
+
+### Migration Guide
+
+**For MCP Clients:**
+- Update all field references from camelCase to snake_case
+- Example: Change `response.browserLink` to `response.browser_link`
+- Structured output schemas now match Python conventions
+
+**For Python Library Users:**
+- No changes required - models always accepted both formats
+- Output now consistently snake_case
+
+**Why This Change:**
+- Python convention is snake_case (PEP 8)
+- Better MCP ecosystem compatibility
+- Consistent with Python tooling expectations
+- Clearer distinction: snake_case for Python/MCP, camelCase for APIs
 
 ## [1.0.1] - 2025-10-16
 
@@ -214,7 +274,8 @@ Initial release.
 - API tokens are handled securely via environment variables
 - No sensitive information is logged
 
-[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v0.1.1...v1.0.0
 [0.1.1]: https://github.com/TJC-LP/coda-mcp-server/compare/v0.1.0...v0.1.1
