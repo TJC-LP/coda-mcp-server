@@ -9,6 +9,7 @@ from .client import CodaClient
 from .models import (
     BeginPageContentExportRequest,
     BeginPageContentExportResponse,
+    CanvasPageContent,
     Column,
     ColumnList,
     Doc,
@@ -18,11 +19,10 @@ from .models import (
     DocumentCreationResult,
     DocUpdate,
     DocUpdateResult,
+    EmbedPageContent,
     Formula,
     FormulaList,
-    InitialPage,
     Page,
-    PageContent,
     PageContentExportStatusResponse,
     PageContentUpdate,
     PageCreate,
@@ -151,7 +151,7 @@ async def create_doc(
     source_doc: str | None = None,
     timezone: str | None = None,
     folder_id: str | None = None,
-    initial_page: InitialPage | None = None,
+    initial_page: PageCreate | None = None,
 ) -> DocumentCreationResult:
     """Create a new Coda doc.
 
@@ -343,7 +343,7 @@ async def create_page(
     icon_name: str | None = None,
     image_url: str | None = None,
     parent_page_id: str | None = None,
-    page_content: PageContent | None = None,
+    page_content: CanvasPageContent | EmbedPageContent | None = None,
 ) -> PageCreateResult:
     """Create a new page in a doc.
 
@@ -354,10 +354,10 @@ async def create_page(
         icon_name: Name of the icon.
         image_url: URL of the cover image.
         parent_page_id: The ID of this new page's parent, if creating a subpage.
-        page_content: Content to initialize the page with (rich text or embed), e.g.:
+        page_content: Content to initialize the page with (canvas or embed), e.g.:
             {
                 "type": "canvas",
-                "canvasContent": {
+                "canvas_content": {
                     "format": "html",
                     "content": "<p><b>This</b> is rich text</p>"
                 }

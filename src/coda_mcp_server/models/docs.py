@@ -26,6 +26,7 @@ from .common import (
     Icon,
     WorkspaceReference,
 )
+from .pages import PageCreate
 
 
 class DocSize(CodaBaseModel):
@@ -240,120 +241,6 @@ class DocList(CodaBaseModel):
         None,
         description="If specified, a link that can be used to fetch the next page of results.",
         examples=["https://coda.io/apis/v1/docs?pageToken=eyJsaW1pd"],
-    )
-
-
-class PageContentFormat(str):
-    """Supported content types for page (canvas) content.
-
-    - html: HTML content
-    - markdown: Markdown content
-    """
-
-    HTML = "html"
-    MARKDOWN = "markdown"
-
-
-class PageContent(CodaBaseModel):
-    """Content for a page (canvas).
-
-    The actual content can be provided in HTML or Markdown format.
-    """
-
-    format: Literal["html", "markdown"] = Field(
-        ...,
-        description="Format of the page content.",
-    )
-    content: str = Field(
-        ...,
-        description="The actual page content.",
-        examples=["<p><b>This</b> is rich text</p>"],
-    )
-
-
-class PageEmbedRenderMethod(str):
-    """Render mode for a page using the Embed page type.
-
-    - compatibility: Legacy rendering mode
-    - standard: Standard rendering mode
-    """
-
-    COMPATIBILITY = "compatibility"
-    STANDARD = "standard"
-
-
-class CanvasPageContent(CodaBaseModel):
-    """Canvas page content with type discriminator.
-
-    Represents a page containing rich text/canvas content.
-    """
-
-    type: Literal["canvas"] = Field(
-        ...,
-        description="Indicates a page containing canvas content.",
-    )
-    canvas_content: PageContent = Field(
-        ...,
-        description="Content for the canvas page.",
-    )
-
-
-class EmbedPageContent(CodaBaseModel):
-    """Embed page content with type discriminator.
-
-    Represents a page that embeds external content.
-    """
-
-    type: Literal["embed"] = Field(
-        ...,
-        description="Indicates a page that embeds other content.",
-    )
-    url: str = Field(
-        ...,
-        description="The URL of the content to embed.",
-        examples=["https://example.com"],
-    )
-    render_method: Literal["compatibility", "standard"] | None = Field(
-        None,
-        description="Render mode for the embed.",
-    )
-
-
-class PageCreate(CodaBaseModel):
-    """Payload for creating a new page in a doc.
-
-    Used when creating a doc with an initial page, or when adding
-    a page to an existing doc.
-    """
-
-    name: str | None = Field(
-        None,
-        description="Name of the page.",
-        examples=["Launch Status"],
-    )
-    subtitle: str | None = Field(
-        None,
-        description="Subtitle of the page.",
-        examples=["See the status of launch-related tasks."],
-    )
-    icon_name: str | None = Field(
-        None,
-        description="Name of the icon.",
-        examples=["rocket"],
-    )
-    image_url: str | None = Field(
-        None,
-        description="Url of the cover image to use.",
-        examples=["https://example.com/image.jpg"],
-    )
-    parent_page_id: str | None = Field(
-        None,
-        description="The ID of this new page's parent, if creating a subpage.",
-        examples=["canvas-tuVwxYz"],
-    )
-    page_content: CanvasPageContent | None = Field(
-        None,
-        description="Content that can be added to a page at creation time.",
     )
 
 

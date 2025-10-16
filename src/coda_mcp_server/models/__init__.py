@@ -71,8 +71,8 @@ from .formulas import (
 
 # Import page-related models
 from .pages import (
-    CanvasContent,
-    InitialPage,
+    CanvasPageContent,
+    EmbedPageContent,
     Page,
     PageContent,
     PageContentUpdate,
@@ -252,10 +252,10 @@ __all__ = [
     # Pages
     "Page",
     "PageList",
-    "CanvasContent",
     "PageContent",
+    "CanvasPageContent",
+    "EmbedPageContent",
     "PageCreate",
-    "InitialPage",
     "PageContentUpdate",
     "PageUpdate",
     "PageCreateResult",
