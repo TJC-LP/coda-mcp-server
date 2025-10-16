@@ -4,6 +4,8 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 
 > **Note**: This is an unofficial MCP server developed by TJC L.P. and is not affiliated with, endorsed by, or supported by Coda. For official Coda support and documentation, please visit [coda.io](https://coda.io).
 
+> **Version 1.1.0 Breaking Change**: All MCP responses now use `snake_case` field names (e.g., `browser_link` instead of `browserLink`) for Python ecosystem compatibility. See [CHANGELOG](CHANGELOG.md#110---2025-10-16) for migration details.
+
 ## Features
 
 ### Document Operations
@@ -19,7 +21,7 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 - **Read pages** - Get page details and content
 - **Update pages** - Modify page properties and content
 - **Delete pages** - Remove pages from docs
-- **Export page content** - Get full HTML/Markdown content with `getPageContent`
+- **Export page content** - Get full HTML/Markdown content with `begin_page_content_export` and `get_page_content_export_status`
 
 ### Table & Data Operations
 - **List tables** - Find all tables and views in a doc
@@ -30,7 +32,7 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 ### Row Operations
 - **List rows** - Query and filter table data
 - **Get specific rows** - Access individual row data
-- **Insert/Update rows** - Add or modify data with `upsertRows`
+- **Insert/Update rows** - Add or modify data with `upsert_rows`
 - **Update single row** - Modify specific row data
 - **Delete rows** - Remove single or multiple rows
 - **Push buttons** - Trigger button columns in tables
@@ -170,7 +172,7 @@ After adding the configuration:
 1. Restart Claude Desktop
 2. Look for the settings icon in the bottom of your conversation
 3. Click it and verify that "coda" is listed as a connected server
-4. You should see 25 available Coda tools when you click `coda` in the dropdown and can toggle the ones that you need specifically.
+4. You should see 26 available Coda tools when you click `coda` in the dropdown and can toggle the ones that you need specifically.
 
 ## Usage in Claude
 
@@ -179,25 +181,25 @@ Once installed, you can use Coda operations directly in Claude by prefixing comm
 ### Document Operations
 ```
 # List all your docs
-Use coda:listDocs with isOwner: true, isPublished: false, query: ""
+Use coda:list_docs with is_owner: true, is_published: false, query: ""
 
 # Get info about a specific doc
-Use coda:getDocInfo with docId: "your-doc-id"
+Use coda:get_doc_info with doc_id: "your-doc-id"
 
 # Create a new doc
-Use coda:createDoc with title: "My New Doc"
+Use coda:create_doc with title: "My New Doc"
 ```
 
 ### Working with Tables
 ```
 # List tables in a doc
-Use coda:listTables with docId: "your-doc-id"
+Use coda:list_tables with doc_id: "your-doc-id"
 
 # Get all rows from a table with column names
-Use coda:listRows with docId: "your-doc-id", tableIdOrName: "Table Name", useColumnNames: true
+Use coda:list_rows with doc_id: "your-doc-id", table_id_or_name: "Table Name", use_column_names: true
 
 # Insert a new row
-Use coda:upsertRows with docId: "your-doc-id", tableIdOrName: "Table Name", rows: [{
+Use coda:upsert_rows with doc_id: "your-doc-id", table_id_or_name: "Table Name", rows_data: [{
   cells: [
     {column: "Name", value: "John Doe"},
     {column: "Email", value: "john@example.com"}
@@ -207,11 +209,11 @@ Use coda:upsertRows with docId: "your-doc-id", tableIdOrName: "Table Name", rows
 
 ### Page Content Export
 ```
-# Get the full HTML content of a page
-Use coda:getPageContent with docId: "your-doc-id", pageIdOrName: "Page Name"
+# Start page export
+Use coda:begin_page_content_export with doc_id: "your-doc-id", page_id_or_name: "Page Name", output_format: "markdown"
 
-# Get page content as Markdown
-Use coda:getPageContent with docId: "your-doc-id", pageIdOrName: "Page Name", outputFormat: "markdown"
+# Check export status and get content
+Use coda:get_page_content_export_status with doc_id: "your-doc-id", page_id_or_name: "Page Name", request_id: "request-id-from-previous-step"
 ```
 
 ## API Reference
@@ -219,38 +221,39 @@ Use coda:getPageContent with docId: "your-doc-id", pageIdOrName: "Page Name", ou
 ### Core Functions
 
 #### Document Management
-- `listDocs(isOwner, isPublished, query, ...)` - List available docs
-- `getDocInfo(docId)` - Get document metadata
-- `createDoc(title, sourceDoc?, timezone?, ...)` - Create new document
-- `updateDoc(docId, title?, iconName?)` - Update document properties
-- `deleteDoc(docId)` - Delete a document
+- `list_docs(is_owner, is_published, query, ...)` - List available docs
+- `get_doc_info(doc_id)` - Get document metadata
+- `create_doc(title, source_doc?, timezone?, ...)` - Create new document
+- `update_doc(doc_id, title?, icon_name?)` - Update document properties
+- `delete_doc(doc_id)` - Delete a document
 
 #### Page Operations
-- `listPages(docId, limit?, pageToken?)` - List pages in a doc
-- `getPage(docId, pageIdOrName)` - Get page details
-- `createPage(docId, name, subtitle?, ...)` - Create new page
-- `updatePage(docId, pageIdOrName, ...)` - Update page properties
-- `deletePage(docId, pageIdOrName)` - Delete a page
-- `getPageContent(docId, pageIdOrName, outputFormat?)` - Export full page content
+- `list_pages(doc_id, limit?, page_token?)` - List pages in a doc
+- `get_page(doc_id, page_id_or_name)` - Get page details
+- `create_page(doc_id, name, subtitle?, ...)` - Create new page
+- `update_page(doc_id, page_id_or_name, ...)` - Update page properties
+- `delete_page(doc_id, page_id_or_name)` - Delete a page
+- `begin_page_content_export(doc_id, page_id_or_name, output_format?)` - Start async page export
+- `get_page_content_export_status(doc_id, page_id_or_name, request_id)` - Poll export status and download content
 
 #### Table Operations
-- `listTables(docId, limit?, sortBy?, ...)` - List all tables
-- `getTable(docId, tableIdOrName)` - Get table details
-- `listColumns(docId, tableIdOrName, ...)` - List table columns
-- `getColumn(docId, tableIdOrName, columnIdOrName)` - Get column details
+- `list_tables(doc_id, limit?, sort_by?, ...)` - List all tables
+- `get_table(doc_id, table_id_or_name)` - Get table details
+- `list_columns(doc_id, table_id_or_name, ...)` - List table columns
+- `get_column(doc_id, table_id_or_name, column_id_or_name)` - Get column details
 
 #### Row Operations
-- `listRows(docId, tableIdOrName, query?, ...)` - List and filter rows
-- `getRow(docId, tableIdOrName, rowIdOrName, ...)` - Get specific row
-- `upsertRows(docId, tableIdOrName, rows, ...)` - Insert or update rows
-- `updateRow(docId, tableIdOrName, rowIdOrName, row, ...)` - Update single row
-- `deleteRow(docId, tableIdOrName, rowIdOrName)` - Delete single row
-- `deleteRows(docId, tableIdOrName, rowIds)` - Delete multiple rows
-- `pushButton(docId, tableIdOrName, rowIdOrName, columnIdOrName)` - Trigger button
+- `list_rows(doc_id, table_id_or_name, query?, ...)` - List and filter rows
+- `get_row(doc_id, table_id_or_name, row_id_or_name, ...)` - Get specific row
+- `upsert_rows(doc_id, table_id_or_name, rows_data, ...)` - Insert or update rows
+- `update_row(doc_id, table_id_or_name, row_id_or_name, row, ...)` - Update single row
+- `delete_row(doc_id, table_id_or_name, row_id_or_name)` - Delete single row
+- `delete_rows(doc_id, table_id_or_name, row_ids)` - Delete multiple rows
+- `push_button(doc_id, table_id_or_name, row_id_or_name, column_id_or_name)` - Trigger button
 
 #### Formula Operations
-- `listFormulas(docId, limit?, sortBy?)` - List named formulas
-- `getFormula(docId, formulaIdOrName)` - Get formula details
+- `list_formulas(doc_id, limit?, sort_by?)` - List named formulas
+- `get_formula(doc_id, formula_id_or_name)` - Get formula details
 
 #### Authentication
 - `whoami()` - Get current user information
@@ -262,12 +265,33 @@ Use coda:getPageContent with docId: "your-doc-id", pageIdOrName: "Page Name", ou
 coda-mcp-server/
 ├── src/
 │   ├── coda_mcp_server/
-│   │   └── server.py      # Main MCP server implementation
+│   │   ├── server.py        # MCP server orchestrator (700 lines)
+│   │   ├── client.py        # HTTP client with Pydantic serialization
+│   │   ├── models/          # 83 Pydantic models (7 modules)
+│   │   │   ├── __init__.py
+│   │   │   ├── common.py    # Shared types and base models
+│   │   │   ├── docs.py      # Document models
+│   │   │   ├── pages.py     # Page models
+│   │   │   ├── tables.py    # Table and column models
+│   │   │   ├── rows.py      # Row and cell models
+│   │   │   ├── exports.py   # Export workflow models
+│   │   │   └── formulas.py  # Formula models
+│   │   └── tools/           # Pure functions (5 modules)
+│   │       ├── __init__.py
+│   │       ├── docs.py      # Document operations
+│   │       ├── pages.py     # Page operations
+│   │       ├── tables.py    # Table operations
+│   │       ├── rows.py      # Row operations
+│   │       └── formulas.py  # Formula operations
 │   └── resources/
 │       └── coda-openapi.yml  # Coda API specification
-├── .env.example           # Example environment configuration
-├── pyproject.toml        # Project dependencies
-└── README.md            # This file
+├── tests/                    # 44 tests
+│   ├── conftest.py
+│   ├── test_models.py
+│   └── test_client_requests.py
+├── .env.example
+├── .mcp.json                 # Claude Code integration
+└── pyproject.toml
 ```
 
 ### Running Locally for Development
@@ -296,8 +320,8 @@ uv run python src/coda_mcp_server/server.py
    - This is handled internally, just use boolean values normally
 
 4. **Page export issues**
-   - Use `getPageContent` instead of manual export operations
-   - This handles the entire export workflow automatically
+   - Use the two-step export workflow: `begin_page_content_export` then `get_page_content_export_status`
+   - The status check automatically downloads content when ready
 
 ## License
 
