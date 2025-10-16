@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coda-mcp-server"
-version = "0.1.1"
-description = "An MCP server which integrates with Coda.io"
+version = "1.0.0"
+description = "A production-ready, type-safe MCP server for Coda.io with structured outputs"
 authors = [
     { name = "Richie Caputo", email = "rcaputo3@tjclp.com" }
 ]
