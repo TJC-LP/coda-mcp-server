@@ -1,7 +1,6 @@
 """Tests for CodaClient HTTP request handling with mocked responses."""
 
 import json
-from typing import Any
 
 import pytest
 from aioresponses import aioresponses
@@ -126,14 +125,12 @@ class TestPydanticModelSerialization:
             call = requests_list[0][0]
 
             # Try to get the body from various possible locations
-            body_str = None
             if 'json' in call.kwargs:
                 body = call.kwargs['json']
             elif 'data' in call.kwargs:
                 body = json.loads(call.kwargs['data'])
             else:
                 # Body might be in the request itself
-                import aiohttp
                 if hasattr(call, 'body') and call.body:
                     body = json.loads(call.body)
                 else:

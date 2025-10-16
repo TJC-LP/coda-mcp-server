@@ -6,7 +6,7 @@ from enum import StrEnum
 from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, Field, model_validator
-from pydantic.alias_generators import to_snake, to_camel
+from pydantic.alias_generators import to_camel, to_snake
 
 # ============================================================================
 # Base Model
@@ -44,9 +44,9 @@ class CodaBaseModel(BaseModel):
             mode: Literal["python", "json"] = "python",
             **kwargs: Any,
     ) -> dict[str, Any]:
-        """
-        Returns a dict with camelCase keys. All include/exclude/filtering kwargs
-        are applied against snake_case field names (same as .model_dump()).
+        """Returns a dict with camelCase keys.
+
+        All include/exclude/filtering kwargs are applied against snake_case field names (same as .model_dump()).
         Set mode="json" to get JSON-compatible types (datetimes -> ISO strings, etc.).
         """
         data = self.model_dump(mode=mode, **kwargs)  # recursive dump

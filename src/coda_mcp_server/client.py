@@ -5,7 +5,6 @@ import os
 from typing import Any
 
 import aiohttp
-from pydantic import BaseModel
 
 from .models import Method
 from .models.common import CodaBaseModel

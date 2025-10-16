@@ -1,8 +1,6 @@
 """Tests for Pydantic models and snake_case serialization."""
 
-from typing import Any
 
-import pytest
 
 from coda_mcp_server.models import (
     Doc,
@@ -10,12 +8,10 @@ from coda_mcp_server.models import (
     Page,
     PageList,
     Row,
-    RowList,
     Table,
-    TableList,
     User,
 )
-from coda_mcp_server.models.common import CodaBaseModel, normalize_keys
+from coda_mcp_server.models.common import normalize_keys
 
 
 class TestNormalizeKeys:
