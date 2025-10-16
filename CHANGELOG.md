@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-10-16
+
+### Security
+- **Removed python-dotenv dependency to prevent arbitrary .env file loading**
+  - API keys now read exclusively from shell environment variables
+  - Prevents unintended environment variable injection when running via uvx
+  - More secure by default - no automatic file loading
+
+### Changed
+- **Updated .mcp.json to use `${CODA_API_KEY}` syntax**
+  - Claude Code now reads API key from shell environment using variable substitution
+  - No more file-based secrets in local development
+  - Consistent with Claude Desktop's environment variable approach
+- **Updated documentation**
+  - README now shows shell environment variable setup
+  - Added optional dotenv-cli approach for users who prefer `.env` files
+  - Improved troubleshooting with environment variable verification
+
+### Migration Guide
+**For local development users:**
+1. Set `CODA_API_KEY` in your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
+   ```bash
+   export CODA_API_KEY="your-coda-api-key-here"
+   ```
+2. Reload your shell or Claude Code
+
+**Alternative - Using dotenv-cli (optional):**
+```bash
+# Keep using .env files if you prefer
+cp .env.example .env
+# Edit .env with your API key
+bunx dotenv-cli -- claude  # or npx dotenv-cli -- claude
+```
+
+**No changes required for:**
+- Claude Desktop users (already using explicit env config)
+- Users running via uvx with explicit env vars
+
 ## [1.2.0] - 2025-10-16
 
 ### Added
@@ -307,7 +345,8 @@ Initial release.
 - API tokens are handled securely via environment variables
 - No sensitive information is logged
 
-[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.0...v1.0.1

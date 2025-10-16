@@ -2,7 +2,6 @@
 
 from typing import Literal
 
-from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 from .client import CodaClient
@@ -46,7 +45,8 @@ from .models import (
 from .tools import docs, formulas, pages, rows, tables
 
 # Central MCP server instance
-load_dotenv()
+# API key is provided via CODA_API_KEY environment variable
+# Set this in your shell or MCP configuration (e.g., .mcp.json)
 mcp = FastMCP("coda", dependencies=["aiohttp"])
 client = CodaClient()
 

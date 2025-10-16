@@ -2,7 +2,10 @@
   "mcpServers": {
     "coda": {
       "command": "uv",
-      "args": ["run", "coda-mcp-server"]
+      "args": ["run", "coda-mcp-server"],
+      "env": {
+        "CODA_API_KEY": "${CODA_API_KEY}"
+      }
     }
   }
 }

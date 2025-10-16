@@ -81,14 +81,7 @@ pip install coda-mcp-server
    uv sync
    ```
 
-3. **Configure your API key**
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` and replace `changeme` with your Coda API key:
-   ```
-   CODA_API_KEY=your-actual-api-key-here
-   ```
+3. **Set your API key as an environment variable** (see Configuration section below)
 
 ## Configuration
 
@@ -96,10 +89,13 @@ pip install coda-mcp-server
 
 For using with Claude Code during development:
 
-1. **Set up your API key in `.env`:**
+1. **Set your API key as a shell environment variable:**
    ```bash
-   cp .env.example .env
-   # Edit .env and add your Coda API key
+   # Add to your shell profile (~/.zshrc, ~/.bashrc, etc.)
+   export CODA_API_KEY="your-coda-api-key-here"
+
+   # Or set it for the current session
+   export CODA_API_KEY="your-coda-api-key-here"
    ```
 
 2. **MCP configuration is already included!**
@@ -110,15 +106,35 @@ For using with Claude Code during development:
      "mcpServers": {
        "coda": {
          "command": "uv",
-         "args": ["run", "coda-mcp-server"]
+         "args": ["run", "coda-mcp-server"],
+         "env": {
+           "CODA_API_KEY": "${CODA_API_KEY}"
+         }
        }
      }
    }
    ```
 
+   The `${CODA_API_KEY}` syntax reads the API key from your shell environment.
+
 3. **Reload Claude Code** - The MCP server will be automatically available
 
-> **Note:** The API key is loaded from `.env` (which is gitignored), so `.mcp.json` can be safely committed
+> **Security Note:** API keys are read from your shell environment, not from files. This prevents accidental commits and arbitrary file loading.
+
+**Alternative: Using `.env` files with dotenv-cli**
+
+If you prefer file-based configuration, you can use `dotenv-cli` to inject environment variables:
+
+```bash
+# Create .env file from example (gitignored)
+cp .env.example .env
+# Edit .env and replace 'changeme' with your API key
+
+# Run Claude Code with dotenv (no installation needed)
+bunx dotenv-cli -- claude
+# or
+npx dotenv-cli -- claude
+```
 
 ### Option 2: Claude Desktop
 
@@ -304,6 +320,9 @@ coda-mcp-server/
 # Install dependencies
 uv sync
 
+# Set your API key (if not already in your shell profile)
+export CODA_API_KEY="your-coda-api-key-here"
+
 # Run the server directly
 uv run python src/coda_mcp_server/server.py
 ```
@@ -313,7 +332,8 @@ uv run python src/coda_mcp_server/server.py
 ### Common Issues
 
 1. **"API Error 401: Unauthorized"**
-   - Check that your `CODA_API_KEY` in `.env` is correct
+   - Check that your `CODA_API_KEY` environment variable is set correctly
+   - Verify with: `echo $CODA_API_KEY`
    - Ensure your API key has the necessary permissions
 
 2. **"Rate limit exceeded"**
