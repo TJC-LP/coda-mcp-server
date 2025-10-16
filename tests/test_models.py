@@ -1,7 +1,5 @@
 """Tests for Pydantic models and snake_case serialization."""
 
-
-
 from coda_mcp_server.models import (
     Doc,
     DocList,

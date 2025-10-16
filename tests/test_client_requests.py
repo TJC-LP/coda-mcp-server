@@ -125,13 +125,13 @@ class TestPydanticModelSerialization:
             call = requests_list[0][0]
 
             # Try to get the body from various possible locations
-            if 'json' in call.kwargs:
-                body = call.kwargs['json']
-            elif 'data' in call.kwargs:
-                body = json.loads(call.kwargs['data'])
+            if "json" in call.kwargs:
+                body = call.kwargs["json"]
+            elif "data" in call.kwargs:
+                body = json.loads(call.kwargs["data"])
             else:
                 # Body might be in the request itself
-                if hasattr(call, 'body') and call.body:
+                if hasattr(call, "body") and call.body:
                     body = json.loads(call.body)
                 else:
                     # Skip detailed validation if we can't access the body

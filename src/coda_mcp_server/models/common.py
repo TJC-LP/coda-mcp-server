@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any, Literal, Mapping
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic.alias_generators import to_camel, to_snake
@@ -39,18 +40,19 @@ class CodaBaseModel(BaseModel):
         return normalize_keys(data, "to_snake")
 
     def model_dump_camel(
-            self,
-            *,
-            mode: Literal["python", "json"] = "python",
-            **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Returns a dict with camelCase keys.
+        self,
+        *,
+        mode: Literal["python", "json"] = "python",
+        **kwargs: Any,
+    ) -> Any:
+        """Returns an object with camelCase keys.
 
         All include/exclude/filtering kwargs are applied against snake_case field names (same as .model_dump()).
         Set mode="json" to get JSON-compatible types (datetimes -> ISO strings, etc.).
         """
         data = self.model_dump(mode=mode, **kwargs)  # recursive dump
         return normalize_keys(data, "to_camel")
+
 
 # ============================================================================
 # HTTP Method Enum

@@ -1,6 +1,7 @@
 """Pytest configuration and shared fixtures."""
 
-from typing import Any, Callable
+from collections.abc import Callable, Generator
+from typing import Any
 
 import pytest
 from aioresponses import aioresponses
@@ -21,7 +22,7 @@ def mock_client(mock_api_key: str) -> CodaClient:
 
 
 @pytest.fixture
-def mock_aioresponses() -> aioresponses:
+def mock_aioresponses() -> Generator[aioresponses]:
     """Provide a configured aioresponses instance for mocking HTTP calls."""
     with aioresponses() as m:
         yield m
@@ -34,6 +35,7 @@ def mock_coda_doc_response() -> Callable[..., dict[str, Any]]:
     Returns a function that creates Doc response dictionaries with
     customizable fields. Default values match Coda API camelCase format.
     """
+
     def _factory(**kwargs: Any) -> dict[str, Any]:
         return {
             "id": kwargs.get("id", "test-doc-123"),
@@ -45,27 +47,35 @@ def mock_coda_doc_response() -> Callable[..., dict[str, Any]]:
             "ownerName": kwargs.get("owner_name", "Test User"),
             "createdAt": kwargs.get("created_at", "2025-01-01T00:00:00.000Z"),
             "updatedAt": kwargs.get("updated_at", "2025-01-01T00:00:00.000Z"),
-            "workspace": kwargs.get("workspace", {
-                "id": "ws-123",
-                "type": "workspace",
-                "browserLink": "https://coda.io/docs",
-                "name": "Test Workspace",
-            }),
-            "folder": kwargs.get("folder", {
-                "id": "fl-123",
-                "type": "folder",
-                "browserLink": "https://coda.io/docs?folderId=fl-123",
-                "name": "Test Folder",
-            }),
+            "workspace": kwargs.get(
+                "workspace",
+                {
+                    "id": "ws-123",
+                    "type": "workspace",
+                    "browserLink": "https://coda.io/docs",
+                    "name": "Test Workspace",
+                },
+            ),
+            "folder": kwargs.get(
+                "folder",
+                {
+                    "id": "fl-123",
+                    "type": "folder",
+                    "browserLink": "https://coda.io/docs?folderId=fl-123",
+                    "name": "Test Folder",
+                },
+            ),
             "workspaceId": "ws-123",
             "folderId": "fl-123",
         }
+
     return _factory
 
 
 @pytest.fixture
 def mock_coda_page_response() -> Callable[..., dict[str, Any]]:
     """Factory for Page API responses (camelCase format from Coda API)."""
+
     def _factory(**kwargs: Any) -> dict[str, Any]:
         return {
             "id": kwargs.get("id", "canvas-test123"),
@@ -79,12 +89,14 @@ def mock_coda_page_response() -> Callable[..., dict[str, Any]]:
             "isEffectivelyHidden": kwargs.get("is_effectively_hidden", False),
             "children": kwargs.get("children", []),
         }
+
     return _factory
 
 
 @pytest.fixture
 def mock_coda_row_response() -> Callable[..., dict[str, Any]]:
     """Factory for Row API responses (camelCase format from Coda API)."""
+
     def _factory(**kwargs: Any) -> dict[str, Any]:
         return {
             "id": kwargs.get("id", "i-test123"),
@@ -97,6 +109,7 @@ def mock_coda_row_response() -> Callable[..., dict[str, Any]]:
             "updatedAt": kwargs.get("updated_at", "2025-01-01T00:00:00.000Z"),
             "values": kwargs.get("values", {"col1": "value1", "col2": "value2"}),
         }
+
     return _factory
 
 
