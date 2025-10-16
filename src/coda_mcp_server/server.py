@@ -9,6 +9,7 @@ from .client import CodaClient
 from .models import (
     BeginPageContentExportRequest,
     BeginPageContentExportResponse,
+    CanvasPageContent,
     Column,
     ColumnList,
     Doc,
@@ -18,11 +19,10 @@ from .models import (
     DocumentCreationResult,
     DocUpdate,
     DocUpdateResult,
+    EmbedPageContent,
     Formula,
     FormulaList,
-    InitialPage,
     Page,
-    PageContent,
     PageContentExportStatusResponse,
     PageContentUpdate,
     PageCreate,
@@ -88,14 +88,14 @@ async def update_doc(doc_id: str, title: str | None = None, icon_name: str | Non
 
 @mcp.tool(
     description=(
-        "List Coda docs accessible by the user with filtering options - "
+        "List Coda docs accessible by the user (defaults to your own unpublished docs) - "
         "returns docs in reverse chronological order by most recent activity"
     )
 )
 async def list_docs(
-    is_owner: bool,
-    is_published: bool,
-    query: str,
+    is_owner: bool = True,
+    is_published: bool = False,
+    query: str | None = None,
     source_doc: str | None = None,
     is_starred: bool | None = None,
     in_gallery: bool | None = None,
@@ -111,8 +111,8 @@ async def list_docs(
     event relevant to the user (last viewed, edited, or shared).
 
     Args:
-        is_owner: Show only docs owned by the user.
-        is_published: Show only published docs.
+        is_owner: Show only docs owned by the user (default: True).
+        is_published: Show only published docs (default: False).
         query: Search term used to filter down results.
         source_doc: Show only docs copied from the specified doc ID.
         is_starred: If true, returns docs that are starred. If false, returns docs that are not starred.
@@ -151,7 +151,7 @@ async def create_doc(
     source_doc: str | None = None,
     timezone: str | None = None,
     folder_id: str | None = None,
-    initial_page: InitialPage | None = None,
+    initial_page: PageCreate | None = None,
 ) -> DocumentCreationResult:
     """Create a new Coda doc.
 
@@ -224,8 +224,8 @@ async def update_page(
         is_hidden: Whether the page is hidden.
         content_update: Content update payload, e.g.:
             {
-                "insertionMode": "append",
-                "canvasContent": {
+                "insertion_mode": "append",
+                "canvas_content": {
                     "format": "html",
                     "content": "<p><b>This</b> is rich text</p>"
                 }
@@ -343,7 +343,7 @@ async def create_page(
     icon_name: str | None = None,
     image_url: str | None = None,
     parent_page_id: str | None = None,
-    page_content: PageContent | None = None,
+    page_content: CanvasPageContent | EmbedPageContent | None = None,
 ) -> PageCreateResult:
     """Create a new page in a doc.
 
@@ -354,10 +354,10 @@ async def create_page(
         icon_name: Name of the icon.
         image_url: URL of the cover image.
         parent_page_id: The ID of this new page's parent, if creating a subpage.
-        page_content: Content to initialize the page with (rich text or embed), e.g.:
+        page_content: Content to initialize the page with (canvas or embed), e.g.:
             {
                 "type": "canvas",
-                "canvasContent": {
+                "canvas_content": {
                     "format": "html",
                     "content": "<p><b>This</b> is rich text</p>"
                 }
@@ -457,7 +457,12 @@ async def get_column(doc_id: str, table_id_or_name: str, column_id_or_name: str)
     return await tables.get_column(client, doc_id, table_id_or_name, column_id_or_name)
 
 
-@mcp.tool(description="Push a button in a specific table cell to trigger its action")
+@mcp.tool(
+    description=(
+        "Trigger a button column in a table row to execute its automation or action "
+        "(buttons can run formulas, modify data, or trigger workflows)"
+    )
+)
 async def push_button(
     doc_id: str,
     table_id_or_name: str,

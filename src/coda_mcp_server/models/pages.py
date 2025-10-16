@@ -54,22 +54,56 @@ class PageList(CodaBaseModel):
     )
 
 
-class CanvasContent(CodaBaseModel):
-    """Content for a page canvas with format and content text."""
+# ============================================================================
+# Page Content Models (matches OpenAPI spec exactly)
+# ============================================================================
+
+
+class PageContent(CodaBaseModel):
+    """Content for a page (canvas).
+
+    Raw content with format and content string. This is the base content type
+    referenced by other content models.
+    """
 
     format: Literal["html", "markdown"] = Field(..., description="Format of the content.")
     content: str = Field(..., description="The actual page content.", examples=["<p><b>This</b> is rich text</p>"])
 
 
-class PageContent(CodaBaseModel):
-    """Page content wrapper for canvas type."""
+class CanvasPageContent(CodaBaseModel):
+    """Canvas page content with type discriminator.
+
+    Represents a page containing rich text/canvas content.
+    Used in PageCreate for specifying initial page content.
+    """
 
     type: Literal["canvas"] = Field(..., description="Indicates a page containing canvas content.")
-    canvas_content: CanvasContent = Field(..., description="The canvas content.")
+    canvas_content: PageContent = Field(..., description="The canvas content.")
+
+
+class EmbedPageContent(CodaBaseModel):
+    """Embed page content with type discriminator.
+
+    Represents a page that embeds external content.
+    Used in PageCreate for embedding URLs.
+    """
+
+    type: Literal["embed"] = Field(..., description="Indicates a page that embeds other content.")
+    url: str = Field(..., description="The URL of the content to embed.", examples=["https://example.com"])
+    render_method: Literal["compatibility", "standard"] | None = Field(None, description="Render mode for the embed.")
+
+
+# ============================================================================
+# Page Creation & Update Models
+# ============================================================================
 
 
 class PageCreate(CodaBaseModel):
-    """Payload for creating a new page in a doc."""
+    """Payload for creating a new page in a doc.
+
+    Can be used both for creating standalone pages and as initial_page
+    when creating a new doc.
+    """
 
     name: str | None = Field(None, description="Name of the page.", examples=["Launch Status"])
     subtitle: str | None = Field(
@@ -84,25 +118,16 @@ class PageCreate(CodaBaseModel):
         description="The ID of this new page's parent, if creating a subpage.",
         examples=["canvas-tuVwxYz"],
     )
-    page_content: PageContent | None = Field(None, description="Content to initialize the page with.")
-
-
-class InitialPage(CodaBaseModel):
-    """Initial page configuration for doc creation."""
-
-    name: str | None = Field(None, description="Name of the page.")
-    subtitle: str | None = Field(None, description="Subtitle of the page.")
-    icon_name: str | None = Field(None, description="Name of the icon.")
-    image_url: str | None = Field(None, description="URL of the cover image.")
-    parent_page_id: str | None = Field(None, description="The ID of this new page's parent.")
-    page_content: PageContent | None = Field(None, description="Content to initialize the page with.")
+    page_content: CanvasPageContent | EmbedPageContent | None = Field(
+        None, description="Content to initialize the page with (canvas or embed)."
+    )
 
 
 class PageContentUpdate(CodaBaseModel):
     """Payload for updating the content of an existing page."""
 
     insertion_mode: Literal["append", "replace"] = Field(..., description="Mode for inserting content.")
-    canvas_content: CanvasContent = Field(..., description="The canvas content to insert.")
+    canvas_content: PageContent = Field(..., description="The canvas content to insert.")
 
 
 class PageUpdate(CodaBaseModel):
@@ -125,6 +150,11 @@ class PageUpdate(CodaBaseModel):
         examples=[True],
     )
     content_update: PageContentUpdate | None = Field(None, description="Content with which to update an existing page.")
+
+
+# ============================================================================
+# Page Operation Results
+# ============================================================================
 
 
 class PageCreateResult(DocumentMutateResponse):

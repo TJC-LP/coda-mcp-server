@@ -57,9 +57,9 @@ async def update_doc(client: CodaClient, doc_id: str, request: DocUpdate) -> Doc
 
 async def list_docs(
     client: CodaClient,
-    is_owner: bool,
-    is_published: bool,
-    query: str,
+    is_owner: bool = True,
+    is_published: bool = False,
+    query: str | None = None,
     source_doc: str | None = None,
     is_starred: bool | None = None,
     in_gallery: bool | None = None,
@@ -76,8 +76,8 @@ async def list_docs(
 
     Args:
         client: The Coda client instance.
-        is_owner: Show only docs owned by the user.
-        is_published: Show only published docs.
+        is_owner: Show only docs owned by the user (default: True).
+        is_published: Show only published docs (default: False).
         query: Search term used to filter down results.
         source_doc: Show only docs copied from the specified doc ID.
         is_starred: If true, returns docs that are starred. If false, returns docs that are not starred.
@@ -93,7 +93,7 @@ async def list_docs(
     params = {
         "isOwner": str(is_owner).lower(),  # Convert to "true" or "false"
         "isPublished": str(is_published).lower(),
-        "query": query,
+        "query": query or "",  # Default to empty query
         "sourceDoc": source_doc,
         "isStarred": str(is_starred).lower() if is_starred is not None else None,
         "inGallery": str(in_gallery).lower() if in_gallery is not None else None,
