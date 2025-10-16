@@ -1,145 +1,107 @@
-"""A template MCP server."""
+"""Coda MCP server - main entry point and tool registration."""
 
-import asyncio
-import json
-import os
-from enum import StrEnum
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
-import aiohttp
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
-from typing_extensions import TypedDict
 
+from .client import CodaClient
+from .models import (
+    BeginPageContentExportRequest,
+    BeginPageContentExportResponse,
+    Column,
+    ColumnList,
+    Doc,
+    DocCreate,
+    DocDelete,
+    DocList,
+    DocumentCreationResult,
+    DocUpdate,
+    DocUpdateResult,
+    Formula,
+    FormulaList,
+    InitialPage,
+    Page,
+    PageContent,
+    PageContentExportStatusResponse,
+    PageContentUpdate,
+    PageCreate,
+    PageCreateResult,
+    PageDeleteResult,
+    PageList,
+    PageUpdate,
+    PageUpdateResult,
+    PushButtonResult,
+    Row,
+    RowDeleteResult,
+    RowEdit,
+    RowList,
+    RowsDeleteResult,
+    RowsUpsertResult,
+    RowUpdateResult,
+    Table,
+    TableList,
+)
+from .tools import docs, formulas, pages, rows, tables
 
-def clean_params(params: dict[str, Any]) -> dict[str, Any]:
-    """Clean parameters by removing `None` values and converting booleans to strings."""
-    cleaned = {}
-    for k, v in params.items():
-        if v is not None:
-            if isinstance(v, bool):
-                cleaned[k] = str(v).lower()  # Convert True -> "true", False -> "false"
-            else:
-                cleaned[k] = v
-    return cleaned
-
-
-class Method(StrEnum):
-    """API methods."""
-
-    GET = "GET"
-    POST = "POST"
-    PUT = "PUT"
-    DELETE = "DELETE"
-    PATCH = "PATCH"
-
-
-class CodaClient:
-    """MCP server for Coda.io integration."""
-
-    def __init__(self, apiToken: str | None = None):
-        """Initialize the client."""
-        self.apiToken = os.getenv("CODA_API_KEY", apiToken)
-        self.baseUrl = "https://coda.io/apis/v1"
-        self.headers = {"Authorization": f"Bearer {self.apiToken}", "Content-Type": "application/json"}
-
-    async def request(self, method: Method, endpoint: str, **kwargs: Any) -> Any:
-        """Make an authenticated request to Coda API."""
-        url = f"{self.baseUrl}/{endpoint}"
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.request(method, url, headers=self.headers, **kwargs) as response:
-                    if response.status == 429:
-                        retry_after = response.headers.get("Retry-After", "60")
-                        raise Exception(f"Rate limit exceeded. Retry after {retry_after} seconds.")
-
-                    response_text = await response.text()
-
-                    if not response.ok:
-                        error_data = None
-                        try:
-                            error_data = await response.json()
-                        except (json.JSONDecodeError, aiohttp.ContentTypeError):
-                            # Response body is not valid JSON, which is expected for some error responses
-                            error_data = None
-
-                        error_message = f"API Error {response.status}: {response.reason}"
-                        if error_data and isinstance(error_data, dict):
-                            if "message" in error_data:
-                                error_message = f"API Error {response.status}: {error_data['message']}"
-                            elif "error" in error_data:
-                                error_message = f"API Error {response.status}: {error_data['error']}"
-                        elif response_text:
-                            error_message = f"API Error {response.status}: {response_text}"
-
-                        raise Exception(error_message)
-
-                    # Return empty dict for 204 No Content responses
-                    if response.status == 204:
-                        return {}
-
-                    # Try to parse JSON response
-                    try:
-                        return json.loads(response_text) if response_text else {}
-                    except json.JSONDecodeError:
-                        raise Exception(f"Invalid JSON response: {response_text[:200]}")
-
-            except aiohttp.ClientError as e:
-                raise Exception(f"Network error: {str(e)}")
-            except Exception as e:
-                # Re-raise our custom exceptions
-                if str(e).startswith(("API Error", "Rate limit", "Invalid JSON", "Network error")):
-                    raise
-                # Wrap unexpected errors
-                raise Exception(f"Unexpected error: {str(e)}")
-
-
+# Central MCP server instance
 mcp = FastMCP("coda", dependencies=["aiohttp"])
 client = CodaClient()
 
+# ============================================================================
+# Doc Tools
+# ============================================================================
 
-@mcp.tool()
+
+@mcp.tool(
+    description="Get information about the current authenticated Coda user including name, email, and scoped token info"
+)
 async def whoami() -> Any:
     """Get information about the current authenticated user.
 
     Returns:
         User information including name, email, and scoped token info.
     """
-    return await client.request(Method.GET, "whoami")
+    return await docs.whoami(client)
 
 
-@mcp.tool()
-async def getDocInfo(docId: str) -> Any:
+@mcp.tool(description="Get detailed metadata about a specific Coda doc by its ID")
+async def get_doc_info(doc_id: str) -> Doc:
     """Get info about a particular doc."""
-    return await client.request(Method.GET, f"docs/{docId}")
+    return await docs.get_doc_info(client, doc_id)
 
 
-@mcp.tool()
-async def deleteDoc(docId: str) -> Any:
+@mcp.tool(description="Permanently delete a Coda doc by ID - use with extreme caution as this cannot be undone")
+async def delete_doc(doc_id: str) -> DocDelete:
     """Delete a doc. USE WITH CAUTION."""
-    return await client.request(Method.DELETE, f"docs/{docId}")
+    return await docs.delete_doc(client, doc_id)
 
 
-@mcp.tool()
-async def updateDoc(docId: str, title: str | None = None, iconName: str | None = None) -> Any:
+@mcp.tool(description="Update properties of a Coda doc including title and icon")
+async def update_doc(doc_id: str, title: str | None = None, icon_name: str | None = None) -> DocUpdateResult:
     """Update properties of a doc."""
-    data = {"title": title, "iconName": iconName}
-    return await client.request(Method.PATCH, f"docs/{docId}", json=clean_params(data))
+    request = DocUpdate(title=title, icon_name=icon_name)
+    return await docs.update_doc(client, doc_id, request)
 
 
-@mcp.tool()
-async def listDocs(
-    isOwner: bool,
-    isPublished: bool,
+@mcp.tool(
+    description=(
+        "List Coda docs accessible by the user with filtering options - "
+        "returns docs in reverse chronological order by most recent activity"
+    )
+)
+async def list_docs(
+    is_owner: bool,
+    is_published: bool,
     query: str,
-    sourceDoc: str | None = None,
-    isStarred: bool | None = None,
-    inGallery: bool | None = None,
-    workspaceId: str | None = None,
-    folderId: str | None = None,
+    source_doc: str | None = None,
+    is_starred: bool | None = None,
+    in_gallery: bool | None = None,
+    workspace_id: str | None = None,
+    folder_id: str | None = None,
     limit: int | None = None,
-    pageToken: str | None = None,
-) -> Any:
+    page_token: str | None = None,
+) -> DocList:
     """List available docs.
 
     Returns a list of Coda docs accessible by the user, and which they have opened at least once.
@@ -147,161 +109,120 @@ async def listDocs(
     event relevant to the user (last viewed, edited, or shared).
 
     Args:
-        isOwner: Show only docs owned by the user.
-        isPublished: Show only published docs.
+        is_owner: Show only docs owned by the user.
+        is_published: Show only published docs.
         query: Search term used to filter down results.
-        sourceDoc: Show only docs copied from the specified doc ID.
-        isStarred: If true, returns docs that are starred. If false, returns docs that are not starred.
-        inGallery: Show only docs visible within the gallery.
-        workspaceId: Show only docs belonging to the given workspace.
-        folderId: Show only docs belonging to the given folder.
+        source_doc: Show only docs copied from the specified doc ID.
+        is_starred: If true, returns docs that are starred. If false, returns docs that are not starred.
+        in_gallery: Show only docs visible within the gallery.
+        workspace_id: Show only docs belonging to the given workspace.
+        folder_id: Show only docs belonging to the given folder.
         limit: Maximum number of results to return in this query (default: 25).
-        pageToken: An opaque token used to fetch the next page of results.
+        page_token: An opaque token used to fetch the next page of results.
 
     Returns:
         Dictionary containing document list and pagination info.
     """
-    params = {
-        "isOwner": str(isOwner).lower(),  # Convert to "true" or "false"
-        "isPublished": str(isPublished).lower(),
-        "query": query,
-        "sourceDoc": sourceDoc,
-        "isStarred": str(isStarred).lower() if isStarred is not None else None,
-        "inGallery": str(inGallery).lower() if inGallery is not None else None,
-        "workspaceId": workspaceId,
-        "folderId": folderId,
-        "limit": limit,
-        "pageToken": pageToken,
-    }
-    return await client.request(Method.GET, "docs", params=clean_params(params))
+    return await docs.list_docs(
+        client,
+        is_owner,
+        is_published,
+        query,
+        source_doc,
+        is_starred,
+        in_gallery,
+        workspace_id,
+        folder_id,
+        limit,
+        page_token,
+    )
 
 
-class CanvasContent(TypedDict):
-    """Canvas content."""
-
-    format: Literal["html", "markdown"]
-    content: str
-
-
-class PageContent(TypedDict):
-    """Page content."""
-
-    type: Literal["canvas"]
-    canvasContent: CanvasContent
-
-
-class InitialPage(TypedDict, total=False):
-    """Initial page."""
-
-    name: str
-    subtitle: str
-    iconName: str
-    imageUrl: str
-    parentPageId: str
-    pageContent: PageContent
-
-
-@mcp.tool()
-async def createDoc(
+@mcp.tool(
+    description=(
+        "Create a new Coda doc with optional configuration including title, timezone, "
+        "folder/workspace placement, and initial page content"
+    )
+)
+async def create_doc(
     title: str,
-    sourceDoc: str | None = None,
+    source_doc: str | None = None,
     timezone: str | None = None,
-    folderId: str | None = None,
-    workspaceId: str | None = None,
-    initialPage: InitialPage | None = None,
-) -> Any:
+    folder_id: str | None = None,
+    workspace_id: str | None = None,
+    initial_page: InitialPage | None = None,
+) -> DocumentCreationResult:
     """Create a new Coda doc.
 
     Args:
         title: Title of the new doc.
-        sourceDoc: Optional ID of a doc to copy.
+        source_doc: Optional ID of a doc to copy.
         timezone: Timezone for the doc, e.g. 'America/Los_Angeles'.
-        folderId: ID of the folder to place the doc in.
-        workspaceId: ID of the workspace to place the doc in.
-        initialPage: Configuration for the initial page of the doc.
+        folder_id: ID of the folder to place the doc in.
+        workspace_id: ID of the workspace to place the doc in.
+        initial_page: Configuration for the initial page of the doc.
             Can include name, subtitle, iconName, imageUrl, parentPageId, and pageContent.
 
     Returns:
         Dictionary containing information about the newly created doc.
     """
-    request_data: dict[str, Any] = {"title": title}
-
-    if sourceDoc:
-        request_data["sourceDoc"] = sourceDoc
-    if timezone:
-        request_data["timezone"] = timezone
-    if folderId:
-        request_data["folderId"] = folderId
-    if workspaceId:
-        request_data["workspaceId"] = workspaceId
-    if initialPage:
-        request_data["initialPage"] = initialPage
-
-    return await client.request(Method.POST, "docs", json=request_data)
+    request = DocCreate(
+        title=title,
+        source_doc=source_doc,
+        timezone=timezone,
+        folder_id=folder_id,
+        initial_page=initial_page,
+    )
+    return await docs.create_doc(client, request)
 
 
-@mcp.tool()
-async def listPages(
-    docId: str,
+# ============================================================================
+# Page Tools
+# ============================================================================
+
+
+@mcp.tool(description="List all pages in a Coda doc with pagination support")
+async def list_pages(
+    doc_id: str,
     limit: int | None = None,
-    pageToken: str | None = None,
-) -> Any:
+    page_token: str | None = None,
+) -> PageList:
     """List pages in a Coda doc."""
-    params = {
-        "limit": limit,
-        "pageToken": pageToken,
-    }
-    return await client.request(Method.GET, f"docs/{docId}/pages", params=clean_params(params))
+    return await pages.list_pages(client, doc_id, limit, page_token)
 
 
-@mcp.tool()
-async def getPage(docId: str, pageIdOrName: str) -> Any:
+@mcp.tool(description="Get detailed metadata about a specific page by its ID or name")
+async def get_page(doc_id: str, page_id_or_name: str) -> Page:
     """Get details about a page."""
-    return await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}")
+    return await pages.get_page(client, doc_id, page_id_or_name)
 
 
-class PageContentUpdate(TypedDict):
-    """Page content update."""
-
-    insertionMode: Literal["append", "replace"]
-    canvasContent: CanvasContent
-
-
-class CellValue(TypedDict, total=False):
-    """Cell value for row operations."""
-
-    column: str  # Column ID or name
-    value: Any  # The value to set
-
-
-class RowUpdate(TypedDict, total=False):
-    """Row data for upsert/update operations."""
-
-    cells: list[CellValue]  # Cell values to update
-
-
-@mcp.tool()
-async def updatePage(
-    docId: str,
-    pageIdOrName: str,
+@mcp.tool(
+    description=(
+        "Update properties and content of a page including name, subtitle, icon, visibility, and HTML/markdown content"
+    )
+)
+async def update_page(
+    doc_id: str,
+    page_id_or_name: str,
     name: str | None = None,
     subtitle: str | None = None,
-    iconName: str | None = None,
-    imageUrl: str | None = None,
-    isHidden: bool | None = None,
-    contentUpdate: PageContentUpdate | None = None,
-) -> Any:
+    icon_name: str | None = None,
+    image_url: str | None = None,
+    is_hidden: bool | None = None,
+    content_update: PageContentUpdate | None = None,
+) -> PageUpdateResult:
     """Update properties of a page.
 
     Args:
-        docId: The ID of the doc.
-        pageIdOrName: The ID or name of the page.
+        doc_id: The ID of the doc.
+        page_id_or_name: The ID or name of the page.
         name: Name of the page.
         subtitle: Subtitle of the page.
-        iconName: Name of the icon.
-        imageUrl: URL of the cover image.
-        isHidden: Whether the page is hidden.
-        contentUpdate: Content update payload, e.g.:
+        icon_name: Name of the icon.
+        image_url: URL of the cover image.
+        is_hidden: Whether the page is hidden.
+        content_update: Content update payload, e.g.:
             {
                 "insertionMode": "append",
                 "canvasContent": {
@@ -313,146 +234,127 @@ async def updatePage(
     Returns:
         API response from Coda.
     """
-    data: dict[str, Any] = {}
-    if name is not None:
-        data["name"] = name
-    if subtitle is not None:
-        data["subtitle"] = subtitle
-    if iconName is not None:
-        data["iconName"] = iconName
-    if imageUrl is not None:
-        data["imageUrl"] = imageUrl
-    if isHidden is not None:
-        data["isHidden"] = isHidden
-    if contentUpdate is not None:
-        data["contentUpdate"] = contentUpdate
-    return await client.request(Method.PUT, f"docs/{docId}/pages/{pageIdOrName}", json=data)
+    page_update = PageUpdate(
+        name=name,
+        subtitle=subtitle,
+        icon_name=icon_name,
+        image_url=image_url,
+        is_hidden=is_hidden,
+        content_update=content_update,
+    )
+    return await pages.update_page(client, doc_id, page_id_or_name, page_update)
 
 
-@mcp.tool()
-async def deletePage(docId: str, pageIdOrName: str) -> Any:
+@mcp.tool(description="Delete a page from a Coda doc by its ID or name")
+async def delete_page(doc_id: str, page_id_or_name: str) -> PageDeleteResult:
     """Delete a page from a doc."""
-    return await client.request(Method.DELETE, f"docs/{docId}/pages/{pageIdOrName}")
+    return await pages.delete_page(client, doc_id, page_id_or_name)
 
 
-# Note: beginPageContentExport and getPageContentExportStatus have been removed
-# in favor of the simpler getPageContent function that handles the entire workflow
+@mcp.tool(
+    description=(
+        "Start an async export of page content in HTML or markdown format - "
+        "returns request ID to poll for completion with get_page_content_export_status"
+    )
+)
+async def begin_page_content_export(
+    doc_id: str, page_id_or_name: str, output_format: str = "html"
+) -> BeginPageContentExportResponse:
+    """Initiate an export of page content.
 
+    This starts an asynchronous export process. The export is not immediate - you must poll
+    the status using get_page_content_export_status with the returned request ID.
 
-# Internal helper functions (not exposed as MCP tools)
-async def _begin_page_export(docId: str, pageIdOrName: str, outputFormat: str = "html") -> dict[str, Any]:
-    """Internal function to start a page content export."""
-    data = {"outputFormat": outputFormat}
-    result = await client.request(Method.POST, f"docs/{docId}/pages/{pageIdOrName}/export", json=data)
-    return cast(dict[str, Any], result)
+    IMPORTANT: Due to Coda's server replication, the export request may not be immediately
+    available on all servers. If you get a 404 error when checking status, wait 2-3 seconds
+    and retry with exponential backoff.
 
-
-async def _get_export_status(docId: str, pageIdOrName: str, requestId: str) -> dict[str, Any]:
-    """Internal function to check page export status."""
-    result = await client.request(Method.GET, f"docs/{docId}/pages/{pageIdOrName}/export/{requestId}")
-    return cast(dict[str, Any], result)
-
-
-async def _get_export_status_by_href(href: str) -> dict[str, Any]:
-    """Internal function to check page export status using the href from the export response."""
-    # Extract the path from the full URL
-    # href format: https://coda.io/apis/v1/docs/{docId}/pages/{pageId}/export/{requestId}
-    if href.startswith(client.baseUrl):
-        path = href[len(client.baseUrl) + 1 :]  # +1 for the trailing slash
-    else:
-        # Handle case where href might be a full URL with different base
-        import urllib.parse
-
-        parsed = urllib.parse.urlparse(href)
-        path = parsed.path.replace("/apis/v1/", "", 1)
-
-    result = await client.request(Method.GET, path)
-    return cast(dict[str, Any], result)
-
-
-async def _download_content(url: str) -> str:
-    """Internal function to download content from a URL."""
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            content = await response.text()
-            return content
-
-
-@mcp.tool()
-async def getPageContent(docId: str, pageIdOrName: str, outputFormat: str = "html") -> Any:
-    """Export and retrieve page content (convenience method).
-
-    This method combines beginPageContentExport and getPageContentExportStatus
-    to provide a simple way to get page content. It handles the polling loop
-    and returns the actual content.
+    Workflow:
+    1. Call this endpoint to start export
+    2. Wait 2-3 seconds for server replication
+    3. Poll get_page_content_export_status until status="complete"
+    4. Use the downloadLink from the status response to download content
 
     Args:
-        docId: ID of the doc.
-        pageIdOrName: ID or name of the page.
-        outputFormat: Format for export (html or markdown).
+        doc_id: ID of the doc.
+        page_id_or_name: ID or name of the page.
+        output_format: Format for export - either "html" or "markdown".
 
     Returns:
-        The exported page content as a string.
+        Export response with:
+        - id: The request ID to use for polling status
+        - status: Initial status (usually "inProgress")
+        - href: URL to check export status
     """
-    # Start export using internal function
-    try:
-        export_result = await _begin_page_export(docId, pageIdOrName, outputFormat)
-    except Exception as e:
-        raise Exception(f"Failed to start page export: {str(e)}")
-
-    request_id = export_result.get("id")
-    href = export_result.get("href")
-
-    if not request_id:
-        raise Exception(f"Failed to start export - no request ID returned. Response: {export_result}")
-
-    if not href:
-        raise Exception(f"Failed to start export - no href returned. Response: {export_result}")
-
-    # Poll for completion (with timeout)
-    max_attempts = 30
-    for i in range(max_attempts):
-        # Use the href from the export response to check status
-        status = await _get_export_status_by_href(href)
-
-        if status.get("status") == "complete":
-            # Fetch content from download URL
-            download_url = status.get("downloadLink")
-            if download_url:
-                return await _download_content(download_url)
-            else:
-                raise Exception("Export completed but no download URL provided")
-
-        elif status.get("status") == "failed":
-            error = status.get("error", "Unknown error")
-            raise Exception(f"Export failed: {error}")
-
-        # Wait before next poll
-        await asyncio.sleep(1)
-
-    raise Exception("Export timed out after 30 seconds")
+    export_request = BeginPageContentExportRequest(output_format=output_format)
+    return await pages.begin_page_content_export(client, doc_id, page_id_or_name, export_request)
 
 
-@mcp.tool()
-async def createPage(
-    docId: str,
+@mcp.tool(
+    description=(
+        "Check status of a page export and auto-download content when ready - "
+        "poll this after starting export with begin_page_content_export"
+    )
+)
+async def get_page_content_export_status(
+    doc_id: str, page_id_or_name: str, request_id: str
+) -> PageContentExportStatusResponse:
+    """Check the status of a page content export.
+
+    Poll this endpoint to check if your export (initiated with begin_page_content_export) is ready.
+
+    IMPORTANT: 404 errors are expected initially due to server replication lag. If you receive
+    a 404 error, wait 2-3 seconds and retry. Use exponential backoff for subsequent retries.
+
+    When the export completes, this function automatically downloads the content for you,
+    so you receive the actual page content directly without needing to make an additional request.
+
+    Args:
+        doc_id: ID of the doc.
+        page_id_or_name: ID or name of the page.
+        request_id: The request ID returned from begin_page_content_export.
+
+    Returns:
+        Status response with:
+        - id: The request ID
+        - status: "inProgress", "complete", or "failed"
+        - href: URL to check status again
+        - downloadLink: (when status="complete") Temporary URL where content was downloaded from
+        - content: (when status="complete") The actual exported page content (HTML or markdown)
+        - error: (when status="failed") Error message describing what went wrong
+
+    Next steps:
+    - If status="inProgress": Wait 1-2 seconds and poll again
+    - If status="complete": The content field contains the exported page content
+    - If status="failed": Check error message and handle accordingly
+    """
+    return await pages.get_page_content_export_status(client, doc_id, page_id_or_name, request_id)
+
+
+@mcp.tool(
+    description=(
+        "Create a new page in a Coda doc with optional subtitle, icon, parent page, and initial HTML/markdown content"
+    )
+)
+async def create_page(
+    doc_id: str,
     name: str,
     subtitle: str | None = None,
-    iconName: str | None = None,
-    imageUrl: str | None = None,
-    parentPageId: str | None = None,
-    pageContent: PageContent | None = None,
-) -> Any:
+    icon_name: str | None = None,
+    image_url: str | None = None,
+    parent_page_id: str | None = None,
+    page_content: PageContent | None = None,
+) -> PageCreateResult:
     """Create a new page in a doc.
 
     Args:
-        docId: The ID of the doc.
+        doc_id: The ID of the doc.
         name: Name of the page.
         subtitle: Subtitle of the page.
-        iconName: Name of the icon.
-        imageUrl: URL of the cover image.
-        parentPageId: The ID of this new page's parent, if creating a subpage.
-        pageContent: Content to initialize the page with (rich text or embed), e.g.:
+        icon_name: Name of the icon.
+        image_url: URL of the cover image.
+        parent_page_id: The ID of this new page's parent, if creating a subpage.
+        page_content: Content to initialize the page with (rich text or embed), e.g.:
             {
                 "type": "canvas",
                 "canvasContent": {
@@ -464,328 +366,320 @@ async def createPage(
     Returns:
         API response from Coda.
     """
-    data: dict[str, Any] = {"name": name}
-    if subtitle is not None:
-        data["subtitle"] = subtitle
-    if iconName is not None:
-        data["iconName"] = iconName
-    if imageUrl is not None:
-        data["imageUrl"] = imageUrl
-    if parentPageId is not None:
-        data["parentPageId"] = parentPageId
-    if pageContent is not None:
-        data["pageContent"] = pageContent
-
-    return await client.request(Method.POST, f"docs/{docId}/pages", json=data)
+    page_create = PageCreate(
+        name=name,
+        subtitle=subtitle,
+        icon_name=icon_name,
+        image_url=image_url,
+        parent_page_id=parent_page_id,
+        page_content=page_content,
+    )
+    return await pages.create_page(client, doc_id, page_create)
 
 
-@mcp.tool()
-async def listTables(
-    docId: str,
+# ============================================================================
+# Table Tools
+# ============================================================================
+
+
+@mcp.tool(description="List all tables and views in a Coda doc with optional filtering and sorting")
+async def list_tables(
+    doc_id: str,
     limit: int | None = None,
-    pageToken: str | None = None,
-    sortBy: Literal["name"] | None = None,
-    tableTypes: list[str] | None = None,
-) -> Any:
+    page_token: str | None = None,
+    sort_by: Literal["name"] | None = None,
+    table_types: list[str] | None = None,
+) -> TableList:
     """List tables in a Coda doc.
 
     Args:
-        docId: ID of the doc.
+        doc_id: ID of the doc.
         limit: Maximum number of results to return.
-        pageToken: An opaque token to fetch the next page of results.
-        sortBy: How to sort the results (e.g., 'name').
-        tableTypes: Types of tables to include (e.g., ['table', 'view']).
+        page_token: An opaque token to fetch the next page of results.
+        sort_by: How to sort the results (e.g., 'name').
+        table_types: Types of tables to include (e.g., ['table', 'view']).
 
     Returns:
         List of tables with their metadata.
     """
-    params = {
-        "limit": limit,
-        "pageToken": pageToken,
-        "sortBy": sortBy,
-        "tableTypes": tableTypes,
-    }
-    return await client.request(Method.GET, f"docs/{docId}/tables", params=clean_params(params))
+    return await tables.list_tables(client, doc_id, limit, page_token, sort_by, table_types)
 
 
-@mcp.tool()
-async def getTable(docId: str, tableIdOrName: str) -> Any:
+@mcp.tool(description="Get detailed information about a specific table including its schema, columns, and metadata")
+async def get_table(doc_id: str, table_id_or_name: str) -> Table:
     """Get details about a specific table.
 
     Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
 
     Returns:
         Table details including columns and metadata.
     """
-    return await client.request(Method.GET, f"docs/{docId}/tables/{tableIdOrName}")
+    return await tables.get_table(client, doc_id, table_id_or_name)
 
 
-@mcp.tool()
-async def listColumns(
-    docId: str,
-    tableIdOrName: str,
+@mcp.tool(description="List all columns in a table with their properties, formats, and formulas")
+async def list_columns(
+    doc_id: str,
+    table_id_or_name: str,
     limit: int | None = None,
-    pageToken: str | None = None,
-    visibleOnly: bool | None = None,
-) -> Any:
+    page_token: str | None = None,
+    visible_only: bool | None = None,
+) -> ColumnList:
     """List columns in a table.
 
     Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
         limit: Maximum number of results to return.
-        pageToken: An opaque token to fetch the next page of results.
-        visibleOnly: If true, only return visible columns.
+        page_token: An opaque token to fetch the next page of results.
+        visible_only: If true, only return visible columns.
 
     Returns:
         List of columns with their properties.
     """
-    params = {
-        "limit": limit,
-        "pageToken": pageToken,
-        "visibleOnly": visibleOnly,
-    }
-    return await client.request(Method.GET, f"docs/{docId}/tables/{tableIdOrName}/columns", params=clean_params(params))
+    return await tables.list_columns(client, doc_id, table_id_or_name, limit, page_token, visible_only)
 
 
-@mcp.tool()
-async def getColumn(docId: str, tableIdOrName: str, columnIdOrName: str) -> Any:
+@mcp.tool(description="Get detailed information about a specific column including its type, format, and formula")
+async def get_column(doc_id: str, table_id_or_name: str, column_id_or_name: str) -> Column:
     """Get details about a specific column.
 
     Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        columnIdOrName: ID or name of the column.
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
+        column_id_or_name: ID or name of the column.
 
     Returns:
         Column details including format and formula.
     """
-    return await client.request(Method.GET, f"docs/{docId}/tables/{tableIdOrName}/columns/{columnIdOrName}")
+    return await tables.get_column(client, doc_id, table_id_or_name, column_id_or_name)
 
 
-@mcp.tool()
-async def listRows(
-    docId: str,
-    tableIdOrName: str,
-    query: str | None = None,
-    sortBy: str | None = None,
-    useColumnNames: bool | None = None,
-    valueFormat: Literal["simple", "simpleWithArrays", "rich"] | None = None,
-    visibleOnly: bool | None = None,
-    limit: int | None = None,
-    pageToken: str | None = None,
-    syncToken: str | None = None,
-) -> Any:
-    """List rows in a table.
-
-    Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        query: Query to filter rows (e.g., 'Status="Complete"').
-        sortBy: Column to sort by. Use 'natural' for the table's sort order.
-        useColumnNames: Use column names instead of IDs in the response.
-        valueFormat: Format for cell values (simple, simpleWithArrays, or rich).
-        visibleOnly: If true, only return visible rows.
-        limit: Maximum number of results to return.
-        pageToken: An opaque token to fetch the next page of results.
-        syncToken: Token for incremental sync of changes.
-
-    Returns:
-        List of rows with their values.
-    """
-    params = {
-        "query": query,
-        "sortBy": sortBy,
-        "useColumnNames": useColumnNames,
-        "valueFormat": valueFormat,
-        "visibleOnly": visibleOnly,
-        "limit": limit,
-        "pageToken": pageToken,
-        "syncToken": syncToken,
-    }
-    return await client.request(Method.GET, f"docs/{docId}/tables/{tableIdOrName}/rows", params=clean_params(params))
-
-
-@mcp.tool()
-async def getRow(
-    docId: str,
-    tableIdOrName: str,
-    rowIdOrName: str,
-    useColumnNames: bool | None = None,
-    valueFormat: Literal["simple", "simpleWithArrays", "rich"] | None = None,
-) -> Any:
-    """Get a specific row from a table.
-
-    Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        rowIdOrName: ID or name of the row.
-        useColumnNames: Use column names instead of IDs in the response.
-        valueFormat: Format for cell values (simple, simpleWithArrays, or rich).
-
-    Returns:
-        Row data with values.
-    """
-    params = {
-        "useColumnNames": useColumnNames,
-        "valueFormat": valueFormat,
-    }
-    return await client.request(
-        Method.GET, f"docs/{docId}/tables/{tableIdOrName}/rows/{rowIdOrName}", params=clean_params(params)
-    )
-
-
-@mcp.tool()
-async def upsertRows(
-    docId: str,
-    tableIdOrName: str,
-    rows: list[RowUpdate],
-    keyColumns: list[str] | None = None,
-    disableParsing: bool | None = None,
-) -> Any:
-    """Insert or update rows in a table.
-
-    Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        rows: List of rows to upsert. Each row should have a 'cells' array with column/value pairs.
-        keyColumns: Column IDs/names to use as keys for matching existing rows.
-        disableParsing: If true, cell values won't be parsed (e.g., URLs won't become links).
-
-    Returns:
-        Result of the upsert operation.
-    """
-    data = {
-        "rows": rows,
-        "keyColumns": keyColumns,
-        "disableParsing": disableParsing,
-    }
-    return await client.request(Method.POST, f"docs/{docId}/tables/{tableIdOrName}/rows", json=clean_params(data))
-
-
-@mcp.tool()
-async def updateRow(
-    docId: str,
-    tableIdOrName: str,
-    rowIdOrName: str,
-    row: RowUpdate,
-    disableParsing: bool | None = None,
-) -> Any:
-    """Update a specific row in a table.
-
-    Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        rowIdOrName: ID or name of the row to update.
-        row: Row data with cells array containing column/value pairs.
-        disableParsing: If true, cell values won't be parsed.
-
-    Returns:
-        Updated row data.
-    """
-    data = {
-        "row": row,
-        "disableParsing": disableParsing,
-    }
-    return await client.request(
-        Method.PUT, f"docs/{docId}/tables/{tableIdOrName}/rows/{rowIdOrName}", json=clean_params(data)
-    )
-
-
-@mcp.tool()
-async def deleteRow(docId: str, tableIdOrName: str, rowIdOrName: str) -> Any:
-    """Delete a specific row from a table.
-
-    Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        rowIdOrName: ID or name of the row to delete.
-
-    Returns:
-        Result of the deletion.
-    """
-    return await client.request(Method.DELETE, f"docs/{docId}/tables/{tableIdOrName}/rows/{rowIdOrName}")
-
-
-@mcp.tool()
-async def deleteRows(
-    docId: str,
-    tableIdOrName: str,
-    rowIds: list[str],
-) -> Any:
-    """Delete multiple rows from a table.
-
-    Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        rowIds: List of row IDs to delete.
-
-    Returns:
-        Result of the deletion operation.
-    """
-    data = {"rowIds": rowIds}
-    return await client.request(Method.DELETE, f"docs/{docId}/tables/{tableIdOrName}/rows", json=data)
-
-
-@mcp.tool()
-async def pushButton(
-    docId: str,
-    tableIdOrName: str,
-    rowIdOrName: str,
-    columnIdOrName: str,
-) -> Any:
+@mcp.tool(description="Push a button in a specific table cell to trigger its action")
+async def push_button(
+    doc_id: str,
+    table_id_or_name: str,
+    row_id_or_name: str,
+    column_id_or_name: str,
+) -> PushButtonResult:
     """Push a button in a table cell.
 
     Args:
-        docId: ID of the doc.
-        tableIdOrName: ID or name of the table.
-        rowIdOrName: ID or name of the row containing the button.
-        columnIdOrName: ID or name of the column containing the button.
+        doc_id: ID of the doc.
+        table_id_or_name: ID of the table.
+        row_id_or_name: ID of the row containing the button.
+        column_id_or_name: ID of the column containing the button.
 
     Returns:
         Result of the button push operation.
     """
-    return await client.request(
-        Method.POST, f"docs/{docId}/tables/{tableIdOrName}/rows/{rowIdOrName}/buttons/{columnIdOrName}", json={}
+    return await tables.push_button(client, doc_id, table_id_or_name, row_id_or_name, column_id_or_name)
+
+
+# ============================================================================
+# Row Tools
+# ============================================================================
+
+
+@mcp.tool(
+    description=(
+        "List rows in a table with optional filtering, sorting, and pagination - returns row data with cell values"
+    )
+)
+async def list_rows(
+    doc_id: str,
+    table_id_or_name: str,
+    query: str | None = None,
+    sort_by: str | None = None,
+    use_column_names: bool | None = None,
+    value_format: Literal["simple", "simpleWithArrays", "rich"] | None = None,
+    visible_only: bool | None = None,
+    limit: int | None = None,
+    page_token: str | None = None,
+    sync_token: str | None = None,
+) -> RowList:
+    """List rows in a table.
+
+    Args:
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
+        query: Query to filter rows (e.g., 'Status="Complete"').
+        sort_by: Column to sort by. Use 'natural' for the table's sort order.
+        use_column_names: Use column names instead of IDs in the response.
+        value_format: Format for cell values (simple, simpleWithArrays, or rich).
+        visible_only: If true, only return visible rows.
+        limit: Maximum number of results to return.
+        page_token: An opaque token to fetch the next page of results.
+        sync_token: Token for incremental sync of changes.
+
+    Returns:
+        List of rows with their values.
+    """
+    return await rows.list_rows(
+        client,
+        doc_id,
+        table_id_or_name,
+        query,
+        sort_by,
+        use_column_names,
+        value_format,
+        visible_only,
+        limit,
+        page_token,
+        sync_token,
     )
 
 
-@mcp.tool()
-async def listFormulas(
-    docId: str,
+@mcp.tool(description="Get a specific row from a table by its ID or name with all cell values")
+async def get_row(
+    doc_id: str,
+    table_id_or_name: str,
+    row_id_or_name: str,
+    use_column_names: bool | None = None,
+    value_format: Literal["simple", "simpleWithArrays", "rich"] | None = None,
+) -> Row:
+    """Get a specific row from a table.
+
+    Args:
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
+        row_id_or_name: ID or name of the row.
+        use_column_names: Use column names instead of IDs in the response.
+        value_format: Format for cell values (simple, simpleWithArrays, or rich).
+
+    Returns:
+        Row data with values.
+    """
+    return await rows.get_row(client, doc_id, table_id_or_name, row_id_or_name, use_column_names, value_format)
+
+
+@mcp.tool(
+    description="Insert new rows or update existing rows in a table based on key columns - ideal for bulk operations"
+)
+async def upsert_rows(
+    doc_id: str,
+    table_id_or_name: str,
+    rows_data: list[RowEdit],
+    key_columns: list[str] | None = None,
+    disable_parsing: bool | None = None,
+) -> RowsUpsertResult:
+    """Insert or update rows in a table.
+
+    Args:
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
+        rows_data: List of rows to upsert. Each row should have a 'cells' array with column/value pairs.
+        key_columns: Column IDs/names to use as keys for matching existing rows.
+        disable_parsing: If true, cell values won't be parsed (e.g., URLs won't become links).
+
+    Returns:
+        Result of the upsert operation.
+    """
+    return await rows.upsert_rows(client, doc_id, table_id_or_name, rows_data, key_columns, disable_parsing)
+
+
+@mcp.tool(description="Update cell values in a specific row by its ID or name")
+async def update_row(
+    doc_id: str,
+    table_id_or_name: str,
+    row_id_or_name: str,
+    row: RowEdit,
+    disable_parsing: bool | None = None,
+) -> RowUpdateResult:
+    """Update a specific row in a table.
+
+    Args:
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
+        row_id_or_name: ID or name of the row to update.
+        row: Row data with cells array containing column/value pairs.
+        disable_parsing: If true, cell values won't be parsed.
+
+    Returns:
+        Updated row data.
+    """
+    return await rows.update_row(client, doc_id, table_id_or_name, row_id_or_name, row, disable_parsing)
+
+
+@mcp.tool(description="Delete a specific row from a table by its ID or name")
+async def delete_row(doc_id: str, table_id_or_name: str, row_id_or_name: str) -> RowDeleteResult:
+    """Delete a specific row from a table.
+
+    Args:
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
+        row_id_or_name: ID or name of the row to delete.
+
+    Returns:
+        Result of the deletion.
+    """
+    return await rows.delete_row(client, doc_id, table_id_or_name, row_id_or_name)
+
+
+@mcp.tool(description="Delete multiple rows from a table at once using a list of row IDs")
+async def delete_rows(
+    doc_id: str,
+    table_id_or_name: str,
+    row_ids: list[str],
+) -> RowsDeleteResult:
+    """Delete multiple rows from a table.
+
+    Args:
+        doc_id: ID of the doc.
+        table_id_or_name: ID or name of the table.
+        row_ids: List of row IDs to delete.
+
+    Returns:
+        Result of the deletion operation.
+    """
+    return await rows.delete_rows(client, doc_id, table_id_or_name, row_ids)
+
+
+# ============================================================================
+# Formula Tools
+# ============================================================================
+
+
+@mcp.tool(description="List all named formulas in a Coda doc with their names and IDs")
+async def list_formulas(
+    doc_id: str,
     limit: int | None = None,
-    pageToken: str | None = None,
-    sortBy: Literal["name"] | None = None,
-) -> Any:
+    page_token: str | None = None,
+    sort_by: Literal["name"] | None = None,
+) -> FormulaList:
     """List named formulas in a doc.
 
     Args:
-        docId: ID of the doc.
+        doc_id: ID of the doc.
         limit: Maximum number of results to return.
-        pageToken: An opaque token to fetch the next page of results.
-        sortBy: How to sort the results.
+        page_token: An opaque token to fetch the next page of results.
+        sort_by: How to sort the results.
 
     Returns:
-        List of named formulas.
+        List of named formulas with pagination metadata.
     """
-    params = {"limit": limit, "pageToken": pageToken, "sortBy": sortBy}
-    return await client.request(Method.GET, f"docs/{docId}/formulas", params=clean_params(params))
+    return await formulas.list_formulas(client, doc_id, limit, page_token, sort_by)
 
 
-@mcp.tool()
-async def getFormula(docId: str, formulaIdOrName: str) -> Any:
+@mcp.tool(description="Get details about a specific named formula including its computed value")
+async def get_formula(doc_id: str, formula_id_or_name: str) -> Formula:
     """Get details about a specific formula.
 
     Args:
-        docId: ID of the doc.
-        formulaIdOrName: ID or name of the formula.
+        doc_id: ID of the doc.
+        formula_id_or_name: ID or name of the formula.
 
     Returns:
-        Formula details including the formula expression.
+        Formula details including the computed value.
     """
-    return await client.request(Method.GET, f"docs/{docId}/formulas/{formulaIdOrName}")
+    return await formulas.get_formula(client, doc_id, formula_id_or_name)
+
+
+# ============================================================================
+# Server Entry Point
+# ============================================================================
 
 
 def main() -> None:

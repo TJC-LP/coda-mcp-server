@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from coda_mcp_server.server import clean_params
+from coda_mcp_server.client import clean_params
 
 
 class TestCleanParams:
