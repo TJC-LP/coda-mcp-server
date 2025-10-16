@@ -29,7 +29,7 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp>=3.13.0,<4.0.0",
-    "fastmcp>=2.12.4,<3.0.0",
+    "mcp>=1.17.0,<2.0.0",
     "typing_extensions>=4.9.0"
 ]
 
