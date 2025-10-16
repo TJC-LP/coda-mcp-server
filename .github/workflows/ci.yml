@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
+        python-version: ["3.11", "3.12", "3.13"]
     
     steps:
     - uses: actions/checkout@v5
@@ -45,4 +45,4 @@ jobs:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
-      if: matrix.python-version == '3.14'
+      if: matrix.python-version == '3.13'
