@@ -1,10 +1,15 @@
 # Coda MCP Server
 
+[![PyPI version](https://img.shields.io/pypi/v/coda-mcp-server.svg)](https://pypi.org/project/coda-mcp-server/)
+[![Python versions](https://img.shields.io/pypi/pyversions/coda-mcp-server.svg)](https://pypi.org/project/coda-mcp-server/)
+[![License](https://img.shields.io/github/license/TJC-LP/coda-mcp-server.svg)](https://github.com/TJC-LP/coda-mcp-server/blob/main/LICENSE)
+[![Tests](https://github.com/TJC-LP/coda-mcp-server/workflows/CI/badge.svg)](https://github.com/TJC-LP/coda-mcp-server/actions)
+
 A Model Context Protocol (MCP) server that provides seamless integration between Claude and Coda.io, enabling AI-powered document automation and data manipulation.
 
 > **Note**: This is an unofficial MCP server developed by TJC L.P. and is not affiliated with, endorsed by, or supported by Coda. For official Coda support and documentation, please visit [coda.io](https://coda.io).
 
-> **Version 1.1.0 Breaking Change**: All MCP responses now use `snake_case` field names (e.g., `browser_link` instead of `browserLink`) for Python ecosystem compatibility. See [CHANGELOG](CHANGELOG.md#110---2025-10-16) for migration details.
+> **Note**: Version 1.1.0+ uses `snake_case` field names (e.g., `browser_link` instead of `browserLink`) for Python ecosystem compatibility. See [CHANGELOG](CHANGELOG.md#110---2025-10-16) for migration details if upgrading from 1.0.x.
 
 ## Features
 
@@ -49,7 +54,7 @@ A Model Context Protocol (MCP) server that provides seamless integration between
 ### Prerequisites
 
 1. **Coda API Key**: Get your API token from [Coda Account Settings](https://coda.io/account)
-2. **Python 3.11+**: Required for the MCP server
+2. **Python 3.11+ (including 3.14)**: Required for the MCP server
 
 ### Option 1: Install from PyPI (Recommended)
 

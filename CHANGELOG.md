@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-10-16
+
+### Added
+- **Python 3.14 and 3.14t support**
+  - Full compatibility with Python 3.14 (stable) and 3.14t (free-threaded)
+  - CI/CD testing across 5 Python versions (3.11, 3.12, 3.13, 3.14, 3.14t)
+  - Updated PyPI classifiers to include Python 3.14
+- **PyPI badges in README**
+  - Added version, Python versions, license, and CI status badges
+  - Improved project discoverability
+
+### Changed
+- **Improved MCP usability**
+  - Made `list_docs` parameters optional with sensible defaults (`is_owner=True`, `is_published=False`)
+  - Updated version notice to be less alarming for new users
+  - Enhanced tool descriptions for better LLM understanding
+- Updated README documentation
+  - Python requirement: "3.11+" → "3.11+ (including 3.14)"
+  - Fixed `update_page` example to use snake_case field names
+
+### Fixed
+- **Page model consolidation** (resolves validation error when creating docs with initial_page)
+  - Removed ~110 lines of duplicate page models across `docs.py` and `pages.py`
+  - Consolidated canonical models in `pages.py` based on OpenAPI spec
+  - Fixed `create_doc` validation issue with `initial_page` parameter
+  - Removed unnecessary forward references
+
+### Technical
+- Requires Python `>=3.11,<3.15` (expanded from `<3.14`)
+- CI/CD matrix expanded from 3 to 5 Python versions
+- All 44 tests passing across all Python versions
+- 100% mypy type coverage maintained
+
 ## [1.1.0] - 2025-10-16
 
 ### 🎉 Breaking Change - Snake Case Serialization
@@ -274,7 +307,8 @@ Initial release.
 - API tokens are handled securely via environment variables
 - No sensitive information is logged
 
-[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/TJC-LP/coda-mcp-server/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/TJC-LP/coda-mcp-server/compare/v0.1.1...v1.0.0
