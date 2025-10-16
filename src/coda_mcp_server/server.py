@@ -1,6 +1,6 @@
 """Coda MCP server - main entry point and tool registration."""
 
-from typing import Any, Literal
+from typing import Literal
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
@@ -41,6 +41,7 @@ from .models import (
     RowUpdateResult,
     Table,
     TableList,
+    User,
 )
 from .tools import docs, formulas, pages, rows, tables
 
@@ -57,7 +58,7 @@ client = CodaClient()
 @mcp.tool(
     description="Get information about the current authenticated Coda user including name, email, and scoped token info"
 )
-async def whoami() -> Any:
+async def whoami() -> User:
     """Get information about the current authenticated user.
 
     Returns:

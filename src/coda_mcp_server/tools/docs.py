@@ -1,7 +1,5 @@
 """Doc-related MCP tools for Coda API."""
 
-from typing import Any
-
 from ..client import CodaClient, clean_params
 from ..models import (
     Doc,
@@ -12,16 +10,18 @@ from ..models import (
     DocUpdate,
     DocUpdateResult,
     Method,
+    User,
 )
 
 
-async def whoami(client: CodaClient) -> dict[str, Any]:
+async def whoami(client: CodaClient) -> User:
     """Get information about the current authenticated user.
 
     Returns:
         User information including name, email, and scoped token info.
     """
-    return await client.request(Method.GET, "whoami")
+    result = await client.request(Method.GET, "whoami")
+    return User.model_validate(result)
 
 
 async def get_doc_info(client: CodaClient, doc_id: str) -> Doc:
@@ -50,7 +50,7 @@ async def update_doc(client: CodaClient, doc_id: str, request: DocUpdate) -> Doc
     result = await client.request(
         Method.PATCH,
         f"docs/{doc_id}",
-        json=request.model_dump(by_alias=True, exclude_none=True),
+        json=request,
     )
     return DocUpdateResult.model_validate(result)
 
@@ -119,6 +119,6 @@ async def create_doc(client: CodaClient, request: DocCreate) -> DocumentCreation
     result = await client.request(
         Method.POST,
         "docs",
-        json=request.model_dump(by_alias=True, exclude_none=True),
+        json=request,
     )
     return DocumentCreationResult.model_validate(result)

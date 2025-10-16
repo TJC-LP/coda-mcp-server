@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **MCP outputs now use snake_case** for Python consistency
+  - All Pydantic models now serialize to snake_case by default (`serialize_by_alias=False`)
+  - API requests still use camelCase (explicitly with `by_alias=True` in client.py)
+  - Better Python/MCP ecosystem compatibility
+  - Example: `browser_link` instead of `browserLink` in MCP responses
+
+### Technical
+- Updated all 83 Pydantic models with `serialize_by_alias=False` in ConfigDict
+- Maintains camelCase for Coda API compatibility via explicit serialization
+- Dual serialization: snake_case for MCP, camelCase for API
+
 ## [1.0.1] - 2025-10-16
 
 ### Added
