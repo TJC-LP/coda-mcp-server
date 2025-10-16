@@ -1,6 +1,6 @@
 """Pydantic models for Coda pages."""
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,11 +22,11 @@ class Page(BaseModel):
         examples=["https://coda.io/d/_dAbCDeFGH/Launch-Status_sumnO"],
     )
     name: str = Field(..., description="Name of the page.", examples=["Launch Status"])
-    subtitle: Optional[str] = Field(
+    subtitle: str | None = Field(
         None, description="Subtitle of the page.", examples=["See the status of launch-related tasks."]
     )
-    icon: Optional[Icon] = Field(None, description="Icon for the page.")
-    image: Optional[Image] = Field(None, description="Cover image for the page.")
+    icon: Icon | None = Field(None, description="Icon for the page.")
+    image: Image | None = Field(None, description="Cover image for the page.")
     content_type: Literal["canvas", "embed", "syncPage"] = Field(
         ..., alias="contentType", description="The type of content on the page."
     )
@@ -37,7 +37,7 @@ class Page(BaseModel):
         description="Whether the page or any of its parents is hidden in the UI.",
         examples=[True],
     )
-    parent: Optional[PageReference] = Field(None, description="Reference to the parent page.")
+    parent: PageReference | None = Field(None, description="Reference to the parent page.")
     children: list[PageReference] = Field(..., description="Child pages of this page.")
 
 
@@ -47,15 +47,15 @@ class PageList(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     items: list[Page] = Field(..., description="List of pages.")
-    href: Optional[str] = Field(
+    href: str | None = Field(
         None,
         description="API link to these results.",
         examples=["https://coda.io/apis/v1/docs/AbCDeFGH/pages?limit=20"],
     )
-    next_page_token: Optional[str] = Field(
+    next_page_token: str | None = Field(
         None, alias="nextPageToken", description="Token for fetching the next page of results.", examples=["eyJsaW1pd"]
     )
-    next_page_link: Optional[str] = Field(
+    next_page_link: str | None = Field(
         None,
         alias="nextPageLink",
         description="Link to the next page of results.",
@@ -84,21 +84,21 @@ class PageCreate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    name: Optional[str] = Field(None, description="Name of the page.", examples=["Launch Status"])
-    subtitle: Optional[str] = Field(
+    name: str | None = Field(None, description="Name of the page.", examples=["Launch Status"])
+    subtitle: str | None = Field(
         None, description="Subtitle of the page.", examples=["See the status of launch-related tasks."]
     )
-    icon_name: Optional[str] = Field(None, alias="iconName", description="Name of the icon.", examples=["rocket"])
-    image_url: Optional[str] = Field(
+    icon_name: str | None = Field(None, alias="iconName", description="Name of the icon.", examples=["rocket"])
+    image_url: str | None = Field(
         None, alias="imageUrl", description="Url of the cover image to use.", examples=["https://example.com/image.jpg"]
     )
-    parent_page_id: Optional[str] = Field(
+    parent_page_id: str | None = Field(
         None,
         alias="parentPageId",
         description="The ID of this new page's parent, if creating a subpage.",
         examples=["canvas-tuVwxYz"],
     )
-    page_content: Optional[PageContent] = Field(
+    page_content: PageContent | None = Field(
         None, alias="pageContent", description="Content to initialize the page with."
     )
 
@@ -108,12 +108,12 @@ class InitialPage(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    name: Optional[str] = Field(None, description="Name of the page.")
-    subtitle: Optional[str] = Field(None, description="Subtitle of the page.")
-    icon_name: Optional[str] = Field(None, alias="iconName", description="Name of the icon.")
-    image_url: Optional[str] = Field(None, alias="imageUrl", description="URL of the cover image.")
-    parent_page_id: Optional[str] = Field(None, alias="parentPageId", description="The ID of this new page's parent.")
-    page_content: Optional[PageContent] = Field(
+    name: str | None = Field(None, description="Name of the page.")
+    subtitle: str | None = Field(None, description="Subtitle of the page.")
+    icon_name: str | None = Field(None, alias="iconName", description="Name of the icon.")
+    image_url: str | None = Field(None, alias="imageUrl", description="URL of the cover image.")
+    parent_page_id: str | None = Field(None, alias="parentPageId", description="The ID of this new page's parent.")
+    page_content: PageContent | None = Field(
         None, alias="pageContent", description="Content to initialize the page with."
     )
 
@@ -134,15 +134,15 @@ class PageUpdate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    name: Optional[str] = Field(None, description="Name of the page.", examples=["Launch Status"])
-    subtitle: Optional[str] = Field(
+    name: str | None = Field(None, description="Name of the page.", examples=["Launch Status"])
+    subtitle: str | None = Field(
         None, description="Subtitle of the page.", examples=["See the status of launch-related tasks."]
     )
-    icon_name: Optional[str] = Field(None, alias="iconName", description="Name of the icon.", examples=["rocket"])
-    image_url: Optional[str] = Field(
+    icon_name: str | None = Field(None, alias="iconName", description="Name of the icon.", examples=["rocket"])
+    image_url: str | None = Field(
         None, alias="imageUrl", description="Url of the cover image to use.", examples=["https://example.com/image.jpg"]
     )
-    is_hidden: Optional[bool] = Field(
+    is_hidden: bool | None = Field(
         None,
         alias="isHidden",
         description=(
@@ -151,7 +151,7 @@ class PageUpdate(BaseModel):
         ),
         examples=[True],
     )
-    content_update: Optional[PageContentUpdate] = Field(
+    content_update: PageContentUpdate | None = Field(
         None, alias="contentUpdate", description="Content with which to update an existing page."
     )
 

@@ -14,7 +14,7 @@ This module contains models for working with Coda docs, including:
 - DocUpdateResult: Result of doc update
 """
 
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -95,7 +95,7 @@ class DocPublished(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         description="Description of the published doc.",
         examples=["Hello World!"],
@@ -106,7 +106,7 @@ class DocPublished(BaseModel):
         description="URL to the published doc.",
         examples=["https://coda.io/@coda/hello-world"],
     )
-    image_link: Optional[str] = Field(
+    image_link: str | None = Field(
         None,
         alias="imageLink",
         description="URL to the cover image for the published doc.",
@@ -129,7 +129,7 @@ class DocPublished(BaseModel):
         ...,
         description="Which interaction mode the published doc should use.",
     )
-    categories: List[DocCategory] = Field(
+    categories: list[DocCategory] = Field(
         ...,
         description="Categories applied to the doc.",
         examples=[["Project Management"]],
@@ -165,7 +165,7 @@ class Doc(BaseModel):
         description="Browser-friendly link to the Coda doc.",
         examples=["https://coda.io/d/_dAbCDeFGH"],
     )
-    icon: Optional[Icon] = Field(
+    icon: Icon | None = Field(
         None,
         description="Info about the icon.",
     )
@@ -185,12 +185,12 @@ class Doc(BaseModel):
         description="Name of the doc owner.",
         examples=["Some User"],
     )
-    doc_size: Optional[DocSize] = Field(
+    doc_size: DocSize | None = Field(
         None,
         alias="docSize",
         description="The number of components within a Coda doc.",
     )
-    source_doc: Optional[DocReference] = Field(
+    source_doc: DocReference | None = Field(
         None,
         alias="sourceDoc",
         description="Reference to a Coda doc from which this doc was copied, if any.",
@@ -207,7 +207,7 @@ class Doc(BaseModel):
         description="Timestamp for when the doc was last modified.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
-    published: Optional[DocPublished] = Field(
+    published: DocPublished | None = Field(
         None,
         description="Information about the publishing state of the document.",
     )
@@ -244,22 +244,22 @@ class DocList(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    items: List[Doc] = Field(
+    items: list[Doc] = Field(
         ...,
         description="Array of Coda docs.",
     )
-    href: Optional[str] = Field(
+    href: str | None = Field(
         None,
         description="API link to these results",
         examples=["https://coda.io/apis/v1/docs?limit=20"],
     )
-    next_page_token: Optional[str] = Field(
+    next_page_token: str | None = Field(
         None,
         alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
-    next_page_link: Optional[str] = Field(
+    next_page_link: str | None = Field(
         None,
         alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",
@@ -344,7 +344,7 @@ class EmbedPageContent(BaseModel):
         description="The URL of the content to embed.",
         examples=["https://example.com"],
     )
-    render_method: Optional[Literal["compatibility", "standard"]] = Field(
+    render_method: Literal["compatibility", "standard"] | None = Field(
         None,
         alias="renderMethod",
         description="Render mode for the embed.",
@@ -360,35 +360,35 @@ class PageCreate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None,
         description="Name of the page.",
         examples=["Launch Status"],
     )
-    subtitle: Optional[str] = Field(
+    subtitle: str | None = Field(
         None,
         description="Subtitle of the page.",
         examples=["See the status of launch-related tasks."],
     )
-    icon_name: Optional[str] = Field(
+    icon_name: str | None = Field(
         None,
         alias="iconName",
         description="Name of the icon.",
         examples=["rocket"],
     )
-    image_url: Optional[str] = Field(
+    image_url: str | None = Field(
         None,
         alias="imageUrl",
         description="Url of the cover image to use.",
         examples=["https://example.com/image.jpg"],
     )
-    parent_page_id: Optional[str] = Field(
+    parent_page_id: str | None = Field(
         None,
         alias="parentPageId",
         description="The ID of this new page's parent, if creating a subpage.",
         examples=["canvas-tuVwxYz"],
     )
-    page_content: Optional[CanvasPageContent] = Field(
+    page_content: CanvasPageContent | None = Field(
         None,
         alias="pageContent",
         description="Content that can be added to a page at creation time.",
@@ -404,23 +404,23 @@ class DocCreate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    title: Optional[str] = Field(
+    title: str | None = Field(
         None,
         description="Title of the new doc. Defaults to 'Untitled'.",
         examples=["Project Tracker"],
     )
-    source_doc: Optional[str] = Field(
+    source_doc: str | None = Field(
         None,
         alias="sourceDoc",
         description="An optional doc ID from which to create a copy.",
         examples=["iJKlm_noPq"],
     )
-    timezone: Optional[str] = Field(
+    timezone: str | None = Field(
         None,
         description="The timezone to use for the newly created doc.",
         examples=["America/Los_Angeles"],
     )
-    folder_id: Optional[str] = Field(
+    folder_id: str | None = Field(
         None,
         alias="folderId",
         description=(
@@ -430,7 +430,7 @@ class DocCreate(BaseModel):
         ),
         examples=["fl-ABcdEFgHJi"],
     )
-    initial_page: Optional[PageCreate] = Field(
+    initial_page: PageCreate | None = Field(
         None,
         alias="initialPage",
         description="The contents of the initial page of the doc.",
@@ -445,12 +445,12 @@ class DocUpdate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    title: Optional[str] = Field(
+    title: str | None = Field(
         None,
         description="Title of the doc.",
         examples=["Project Tracker"],
     )
-    icon_name: Optional[str] = Field(
+    icon_name: str | None = Field(
         None,
         alias="iconName",
         description="Name of the icon.",
@@ -475,17 +475,17 @@ class DocPublish(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    slug: Optional[str] = Field(
+    slug: str | None = Field(
         None,
         description="Slug for the published doc.",
         examples=["my-doc"],
     )
-    discoverable: Optional[bool] = Field(
+    discoverable: bool | None = Field(
         None,
         description="If true, indicates that the doc is discoverable.",
         examples=[True],
     )
-    earn_credit: Optional[bool] = Field(
+    earn_credit: bool | None = Field(
         None,
         alias="earnCredit",
         description=(
@@ -494,13 +494,13 @@ class DocPublish(BaseModel):
         ),
         examples=[True],
     )
-    category_names: Optional[List[str]] = Field(
+    category_names: list[str] | None = Field(
         None,
         alias="categoryNames",
         description="The names of categories to apply to the document.",
         examples=[["Project management"]],
     )
-    mode: Optional[Literal["view", "play", "edit"]] = Field(
+    mode: Literal["view", "play", "edit"] | None = Field(
         None,
         description="Which interaction mode the published doc should use.",
     )
@@ -552,7 +552,7 @@ class DocumentCreationResult(BaseModel):
         description="Browser-friendly link to the Coda doc.",
         examples=["https://coda.io/d/_dAbCDeFGH"],
     )
-    icon: Optional[Icon] = Field(
+    icon: Icon | None = Field(
         None,
         description="Info about the icon.",
     )
@@ -572,12 +572,12 @@ class DocumentCreationResult(BaseModel):
         description="Name of the doc owner.",
         examples=["Some User"],
     )
-    doc_size: Optional[DocSize] = Field(
+    doc_size: DocSize | None = Field(
         None,
         alias="docSize",
         description="The number of components within a Coda doc.",
     )
-    source_doc: Optional[DocReference] = Field(
+    source_doc: DocReference | None = Field(
         None,
         alias="sourceDoc",
         description="Reference to a Coda doc from which this doc was copied, if any.",
@@ -594,7 +594,7 @@ class DocumentCreationResult(BaseModel):
         description="Timestamp for when the doc was last modified.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
-    published: Optional[DocPublished] = Field(
+    published: DocPublished | None = Field(
         None,
         description="Information about the publishing state of the document.",
     )
@@ -645,7 +645,7 @@ class DocCategoryList(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    items: List[DocCategory] = Field(
+    items: list[DocCategory] = Field(
         ...,
         description="Categories for the doc.",
     )

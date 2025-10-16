@@ -9,7 +9,7 @@ The export API is asynchronous because rendering page content can take time.
 Poll the href URL from the initial response to check status and get the download link.
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -89,7 +89,7 @@ class PageContentExportStatusResponse(BaseModel):
         description="The URL that reports the status of this export.",
         examples=["https://coda.io/apis/v1/docs/somedoc/pages/somepage/export/some-request-id"],
     )
-    download_link: Optional[str] = Field(
+    download_link: str | None = Field(
         None,
         alias="downloadLink",
         description=(
@@ -99,11 +99,11 @@ class PageContentExportStatusResponse(BaseModel):
         ),
         examples=["https://coda.io/blobs/DOC_EXPORT_RENDERING/some-request-id"],
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         None,
         description="Message describing an error, if this export failed.",
     )
-    content: Optional[str] = Field(
+    content: str | None = Field(
         None,
         description=(
             "The actual exported page content (HTML or markdown). "

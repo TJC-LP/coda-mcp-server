@@ -1,7 +1,7 @@
 """Row and cell value models for Coda MCP server."""
 
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, Union
+from typing import Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,7 +29,7 @@ ScalarValue = Union[str, float, bool]
 
 
 # Value - scalar or array of scalars
-Value = Union[ScalarValue, List[Union[ScalarValue, List[ScalarValue]]]]
+Value = Union[ScalarValue, list[Union[ScalarValue, list[ScalarValue]]]]
 
 
 # Currency Amount
@@ -48,7 +48,7 @@ class LinkedDataObject(BaseModel):
         examples=["http://schema.org/"],
     )
     type: LinkedDataType = Field(..., alias="@type", description="A schema.org identifier for the object.")
-    additional_type: Optional[str] = Field(
+    additional_type: str | None = Field(
         None,
         alias="additionalType",
         description=(
@@ -63,7 +63,7 @@ class UrlValue(LinkedDataObject):
     model_config = ConfigDict(populate_by_name=True)
 
     type: Literal["WebPage"] = Field(..., alias="@type", description="The type of this resource.")
-    name: Optional[str] = Field(None, description="The user-visible text of the hyperlink.", examples=["Click me"])
+    name: str | None = Field(None, description="The user-visible text of the hyperlink.", examples=["Click me"])
     url: str = Field(..., description="The url of the hyperlink.", examples=["https://coda.io"])
 
 
@@ -73,15 +73,15 @@ class ImageUrlValue(LinkedDataObject):
     model_config = ConfigDict(populate_by_name=True)
 
     type: Literal["ImageObject"] = Field(..., alias="@type", description="The type of this resource.")
-    name: Optional[str] = Field(None, description="The name of the image.", examples=["Dogs Playing Poker"])
-    url: Optional[str] = Field(
+    name: str | None = Field(None, description="The name of the image.", examples=["Dogs Playing Poker"])
+    url: str | None = Field(
         None,
         description="The url of the image.",
         examples=["https://example.com/dogs-playing-poker.jpg"],
     )
-    height: Optional[float] = Field(None, description="The height of the image in pixels.", examples=[480])
-    width: Optional[float] = Field(None, description="The width of the image in pixels.", examples=[640])
-    status: Optional[ImageStatus] = Field(None, description="The status of the image.")
+    height: float | None = Field(None, description="The height of the image in pixels.", examples=[480])
+    width: float | None = Field(None, description="The width of the image in pixels.", examples=[640])
+    status: ImageStatus | None = Field(None, description="The status of the image.")
 
 
 class CurrencyValue(LinkedDataObject):
@@ -126,7 +126,7 @@ RichSingleValue = Union[ScalarValue, CurrencyValue, ImageUrlValue, PersonValue, 
 
 
 # Rich Value - single value or array of values
-RichValue = Union[RichSingleValue, List[Union[RichSingleValue, List[RichSingleValue]]]]
+RichValue = Union[RichSingleValue, list[Union[RichSingleValue, list[RichSingleValue]]]]
 
 
 # Cell Value - can be simple value or rich value
@@ -151,7 +151,7 @@ class RowEdit(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    cells: List[CellEdit] = Field(..., description="Array of cell edits for the row.")
+    cells: list[CellEdit] = Field(..., description="Array of cell edits for the row.")
 
 
 class Row(BaseModel):
@@ -190,7 +190,7 @@ class Row(BaseModel):
         description="Timestamp for when the row was last modified.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
-    values: Dict[str, CellValue] = Field(
+    values: dict[str, CellValue] = Field(
         ...,
         description=(
             "Values for a specific row, represented as a hash of column IDs (or names with `useColumnNames`) to values."
@@ -210,25 +210,25 @@ class RowList(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    items: List[Row] = Field(..., description="Array of rows.")
-    href: Optional[str] = Field(
+    items: list[Row] = Field(..., description="Array of rows.")
+    href: str | None = Field(
         None,
         description="API link to these results",
         examples=["https://coda.io/apis/v1/docs/AbCDeFGH/tables/grid-pqRst-U/rows?limit=20"],
     )
-    next_page_token: Optional[str] = Field(
+    next_page_token: str | None = Field(
         None,
         alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
-    next_page_link: Optional[str] = Field(
+    next_page_link: str | None = Field(
         None,
         alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",
         examples=["https://coda.io/apis/v1/docs/AbCDeFGH/tables/grid-pqRst-U/rows?pageToken=eyJsaW1pd"],
     )
-    next_sync_token: Optional[str] = Field(
+    next_sync_token: str | None = Field(
         None,
         alias="nextSyncToken",
         description=(
@@ -258,8 +258,8 @@ class RowsUpsert(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    rows: List[RowEdit] = Field(..., description="Array of row edits to upsert.")
-    key_columns: Optional[List[str]] = Field(
+    rows: list[RowEdit] = Field(..., description="Array of row edits to upsert.")
+    key_columns: list[str] | None = Field(
         None,
         alias="keyColumns",
         description=(
@@ -275,7 +275,7 @@ class RowsUpsertResult(DocumentMutateResponse):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    added_row_ids: Optional[List[str]] = Field(
+    added_row_ids: list[str] | None = Field(
         None,
         alias="addedRowIds",
         description=("Row IDs for rows that will be added. Only applicable when keyColumns is not set or empty."),
@@ -288,7 +288,7 @@ class RowsDelete(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    row_ids: List[str] = Field(
+    row_ids: list[str] = Field(
         ...,
         alias="rowIds",
         description="Row IDs to delete.",
@@ -301,7 +301,7 @@ class RowsDeleteResult(DocumentMutateResponse):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    row_ids: List[str] = Field(
+    row_ids: list[str] = Field(
         ...,
         alias="rowIds",
         description="Row IDs to delete.",

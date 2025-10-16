@@ -1,7 +1,7 @@
 """Table and column models for Coda MCP server."""
 
 from datetime import datetime
-from typing import List, Literal, Optional, Union
+from typing import Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -120,7 +120,7 @@ IconSet = Literal[
 class NumberOrNumberFormula(BaseModel):
     """A number or a string representing a formula that evaluates to a number."""
 
-    value: Union[float, str] = Field(..., description="A numeric value or formula that evaluates to a numeric value.")
+    value: float | str = Field(..., description="A numeric value or formula that evaluates to a numeric value.")
 
 
 class ColumnReference(BaseModel):
@@ -189,8 +189,8 @@ class NumericColumnFormat(SimpleColumnFormat):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    precision: Optional[int] = Field(None, ge=0, le=10, description="The decimal precision.", examples=[2])
-    use_thousands_separator: Optional[bool] = Field(
+    precision: int | None = Field(None, ge=0, le=10, description="The decimal precision.", examples=[2])
+    use_thousands_separator: bool | None = Field(
         None,
         alias="useThousandsSeparator",
         description='Whether to use a thousands separator (like ",") to format the numeric value.',
@@ -203,9 +203,9 @@ class CurrencyColumnFormat(SimpleColumnFormat):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    currency_code: Optional[str] = Field(None, alias="currencyCode", description="The currency symbol", examples=["$"])
-    precision: Optional[int] = Field(None, ge=0, le=10, description="The decimal precision.", examples=[2])
-    format: Optional[CurrencyFormatType] = Field(
+    currency_code: str | None = Field(None, alias="currencyCode", description="The currency symbol", examples=["$"])
+    precision: int | None = Field(None, ge=0, le=10, description="The decimal precision.", examples=[2])
+    format: CurrencyFormatType | None = Field(
         None,
         description="How the numeric value should be formatted (with or without symbol, negative numbers in parens).",
     )
@@ -214,7 +214,7 @@ class CurrencyColumnFormat(SimpleColumnFormat):
 class DateColumnFormat(SimpleColumnFormat):
     """Format of a date column."""
 
-    format: Optional[str] = Field(
+    format: str | None = Field(
         None,
         description="A format string using Moment syntax: https://momentjs.com/docs/#/displaying/",
         examples=["YYYY-MM-DD"],
@@ -224,7 +224,7 @@ class DateColumnFormat(SimpleColumnFormat):
 class TimeColumnFormat(SimpleColumnFormat):
     """Format of a time column."""
 
-    format: Optional[str] = Field(
+    format: str | None = Field(
         None,
         description="A format string using Moment syntax: https://momentjs.com/docs/#/displaying/",
         examples=["h:mm:ss A"],
@@ -236,13 +236,13 @@ class DateTimeColumnFormat(SimpleColumnFormat):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    date_format: Optional[str] = Field(
+    date_format: str | None = Field(
         None,
         alias="dateFormat",
         description="A format string using Moment syntax: https://momentjs.com/docs/#/displaying/",
         examples=["YYYY-MM-DD"],
     )
-    time_format: Optional[str] = Field(
+    time_format: str | None = Field(
         None,
         alias="timeFormat",
         description="A format string using Moment syntax: https://momentjs.com/docs/#/displaying/",
@@ -255,8 +255,8 @@ class DurationColumnFormat(SimpleColumnFormat):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    precision: Optional[int] = Field(None, description="The precision.", examples=[2])
-    max_unit: Optional[DurationUnit] = Field(
+    precision: int | None = Field(None, description="The precision.", examples=[2])
+    max_unit: DurationUnit | None = Field(
         None,
         alias="maxUnit",
         description='The maximum unit of precision, e.g. "hours" if this duration need not include minutes.',
@@ -266,19 +266,17 @@ class DurationColumnFormat(SimpleColumnFormat):
 class EmailColumnFormat(SimpleColumnFormat):
     """Format of an email column."""
 
-    display: Optional[EmailDisplayType] = Field(
+    display: EmailDisplayType | None = Field(
         None, description="How an email address should be displayed in the user interface."
     )
-    autocomplete: Optional[bool] = Field(None, description="Enable autocomplete for email.")
+    autocomplete: bool | None = Field(None, description="Enable autocomplete for email.")
 
 
 class LinkColumnFormat(SimpleColumnFormat):
     """Format of a link column."""
 
-    display: Optional[LinkDisplayType] = Field(
-        None, description="How a link should be displayed in the user interface."
-    )
-    force: Optional[bool] = Field(
+    display: LinkDisplayType | None = Field(None, description="How a link should be displayed in the user interface.")
+    force: bool | None = Field(
         None,
         description="Force embeds to render on the client instead of the server (for sites that require user login).",
         examples=[True],
@@ -298,15 +296,13 @@ class SliderColumnFormat(SimpleColumnFormat):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    minimum: Optional[NumberOrNumberFormula] = Field(None, description="The minimum allowed value for this slider.")
-    maximum: Optional[NumberOrNumberFormula] = Field(None, description="The maximum allowed value for this slider.")
-    step: Optional[NumberOrNumberFormula] = Field(
-        None, description="The step size (numeric increment) for this slider."
-    )
-    display_type: Optional[SliderDisplayType] = Field(
+    minimum: NumberOrNumberFormula | None = Field(None, description="The minimum allowed value for this slider.")
+    maximum: NumberOrNumberFormula | None = Field(None, description="The maximum allowed value for this slider.")
+    step: NumberOrNumberFormula | None = Field(None, description="The step size (numeric increment) for this slider.")
+    display_type: SliderDisplayType | None = Field(
         None, alias="displayType", description="How the slider should be rendered."
     )
-    show_value: Optional[bool] = Field(
+    show_value: bool | None = Field(
         None,
         alias="showValue",
         description="Whether the underyling numeric value is also displayed.",
@@ -326,11 +322,11 @@ class ButtonColumnFormat(SimpleColumnFormat):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    label: Optional[str] = Field(None, description="Label formula for the button.", examples=["Click me"])
-    disable_if: Optional[str] = Field(
+    label: str | None = Field(None, description="Label formula for the button.", examples=["Click me"])
+    disable_if: str | None = Field(
         None, alias="disableIf", description="DisableIf formula for the button.", examples=["False()"]
     )
-    action: Optional[str] = Field(
+    action: str | None = Field(
         None,
         description="Action formula for the button.",
         examples=['OpenUrl("www.google.com")'],
@@ -353,13 +349,13 @@ class SelectOption(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     name: str = Field(..., description="The name of the option.", examples=["Option 1"])
-    background_color: Optional[str] = Field(
+    background_color: str | None = Field(
         None,
         alias="backgroundColor",
         description="The background color of the option.",
         examples=["#ff0000"],
     )
-    foreground_color: Optional[str] = Field(
+    foreground_color: str | None = Field(
         None,
         alias="foregroundColor",
         description="The foreground color of the option.",
@@ -407,10 +403,10 @@ class Column(BaseModel):
         examples=["https://coda.io/apis/v1/docs/AbCDeFGH/tables/grid-pqRst-U/columns/c-tuVwxYz"],
     )
     name: str = Field(..., description="Name of the column.", examples=["Completed"])
-    display: Optional[bool] = Field(None, description="Whether the column is the display column.", examples=[True])
-    calculated: Optional[bool] = Field(None, description="Whether the column has a formula set on it.", examples=[True])
-    formula: Optional[str] = Field(None, description="Formula on the column.", examples=["thisRow.Created()"])
-    default_value: Optional[str] = Field(
+    display: bool | None = Field(None, description="Whether the column is the display column.", examples=[True])
+    calculated: bool | None = Field(None, description="Whether the column has a formula set on it.", examples=[True])
+    formula: str | None = Field(None, description="Formula on the column.", examples=["thisRow.Created()"])
+    default_value: str | None = Field(
         None, alias="defaultValue", description="Default value formula for the column.", examples=["Test"]
     )
     format: ColumnFormat = Field(..., description="Format of the column.")
@@ -427,19 +423,19 @@ class ColumnList(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    items: List[Column] = Field(..., description="Array of columns.")
-    href: Optional[str] = Field(
+    items: list[Column] = Field(..., description="Array of columns.")
+    href: str | None = Field(
         None,
         description="API link to these results",
         examples=["https://coda.io/apis/v1/docs/AbCDeFGH/tables/grid-pqRst-U/columns?limit=20"],
     )
-    next_page_token: Optional[str] = Field(
+    next_page_token: str | None = Field(
         None,
         alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
-    next_page_link: Optional[str] = Field(
+    next_page_link: str | None = Field(
         None,
         alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",
@@ -468,14 +464,14 @@ class Table(BaseModel):
     )
     name: str = Field(..., description="Name of the table.", examples=["Tasks"])
     parent: PageReference = Field(..., description="Parent page of the table.")
-    parent_table: Optional[TableReference] = Field(
+    parent_table: TableReference | None = Field(
         None, alias="parentTable", description="Parent table if this is a view."
     )
     display_column: ColumnReference = Field(..., alias="displayColumn", description="The display column for the table.")
     row_count: int = Field(..., alias="rowCount", description="Total number of rows in the table.", examples=[130])
-    sorts: List[Sort] = Field(..., description="Any sorts applied to the table.")
+    sorts: list[Sort] = Field(..., description="Any sorts applied to the table.")
     layout: Layout = Field(..., description="Layout type of the table or view.")
-    filter: Optional[FormulaDetail] = Field(
+    filter: FormulaDetail | None = Field(
         None, description="Detailed information about the filter formula for the table, if applicable."
     )
     created_at: datetime = Field(
@@ -490,7 +486,7 @@ class Table(BaseModel):
         description="Timestamp for when the table was last modified.",
         examples=["2018-04-11T00:18:57.946Z"],
     )
-    view_id: Optional[str] = Field(None, alias="viewId", description="ID of the view if this is a view.")
+    view_id: str | None = Field(None, alias="viewId", description="ID of the view if this is a view.")
 
 
 class TableList(BaseModel):
@@ -498,19 +494,19 @@ class TableList(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    items: List[TableReference] = Field(..., description="Array of table references.")
-    href: Optional[str] = Field(
+    items: list[TableReference] = Field(..., description="Array of table references.")
+    href: str | None = Field(
         None,
         description="API link to these results",
         examples=["https://coda.io/apis/v1/docs/AbCDeFGH/tables?limit=20"],
     )
-    next_page_token: Optional[str] = Field(
+    next_page_token: str | None = Field(
         None,
         alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
-    next_page_link: Optional[str] = Field(
+    next_page_link: str | None = Field(
         None,
         alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",

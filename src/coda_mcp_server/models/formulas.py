@@ -1,6 +1,6 @@
 """Pydantic models for Coda formula operations."""
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -46,18 +46,18 @@ class FormulaList(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     items: list[FormulaReference] = Field(..., description="List of named formulas in the doc.")
-    href: Optional[str] = Field(
+    href: str | None = Field(
         None,
         description="API link to these results",
         examples=["https://coda.io/apis/v1/docs/AbCDeFGH/formulas?limit=20"],
     )
-    next_page_token: Optional[str] = Field(
+    next_page_token: str | None = Field(
         None,
         alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
-    next_page_link: Optional[str] = Field(
+    next_page_link: str | None = Field(
         None,
         alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",

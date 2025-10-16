@@ -1,7 +1,7 @@
 """Common types and models shared across Coda MCP server."""
 
 from enum import StrEnum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -120,7 +120,7 @@ class BadRequestError(ApiError):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    coda_detail: Optional[CodaDetail] = Field(
+    coda_detail: CodaDetail | None = Field(
         None,
         alias="codaDetail",
         description="Detail about why this request was rejected.",
@@ -173,18 +173,18 @@ class PaginationMetadata(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    href: Optional[str] = Field(
+    href: str | None = Field(
         None,
         description="API link to these results.",
         examples=["https://coda.io/apis/v1/docs?limit=20"],
     )
-    next_page_token: Optional[str] = Field(
+    next_page_token: str | None = Field(
         None,
         alias="nextPageToken",
         description="If specified, an opaque token used to fetch the next page of results.",
         examples=["eyJsaW1pd"],
     )
-    next_page_link: Optional[str] = Field(
+    next_page_link: str | None = Field(
         None,
         alias="nextPageLink",
         description="If specified, a link that can be used to fetch the next page of results.",
@@ -244,9 +244,9 @@ class Image(BaseModel):
         description="Browser-friendly link to an image.",
         examples=["https://codahosted.io/docs/nUYhlXysYO/blobs/bl-lYkYKNzkuT/3f879b9ecfa27448"],
     )
-    type: Optional[str] = Field(None, description="MIME type of the image.")
-    width: Optional[float] = Field(None, description="The width in pixels of the image.", examples=[800])
-    height: Optional[float] = Field(None, description="The height in pixels of the image.", examples=[600])
+    type: str | None = Field(None, description="MIME type of the image.")
+    width: float | None = Field(None, description="The width in pixels of the image.", examples=[800])
+    height: float | None = Field(None, description="The height in pixels of the image.", examples=[600])
 
 
 class FormulaDetail(BaseModel):
@@ -259,7 +259,7 @@ class FormulaDetail(BaseModel):
         description="Returns whether or not the given formula is valid.",
         examples=[True],
     )
-    is_volatile: Optional[bool] = Field(
+    is_volatile: bool | None = Field(
         None,
         alias="isVolatile",
         description=(
@@ -268,19 +268,19 @@ class FormulaDetail(BaseModel):
         ),
         examples=[False],
     )
-    has_user_formula: Optional[bool] = Field(
+    has_user_formula: bool | None = Field(
         None,
         alias="hasUserFormula",
         description="Returns whether or not the given formula has a User() formula within it.",
         examples=[False],
     )
-    has_today_formula: Optional[bool] = Field(
+    has_today_formula: bool | None = Field(
         None,
         alias="hasTodayFormula",
         description="Returns whether or not the given formula has a Today() formula within it.",
         examples=[False],
     )
-    has_now_formula: Optional[bool] = Field(
+    has_now_formula: bool | None = Field(
         None,
         alias="hasNowFormula",
         description="Returns whether or not the given formula has a Now() formula within it.",
@@ -301,8 +301,8 @@ class PersonValue(BaseModel):
     )
     type: Literal["Person"] = Field(..., alias="@type", description="The type of this resource.")
     name: str = Field(..., description="The full name of the person.", examples=["Alice Atkins"])
-    email: Optional[str] = Field(None, description="The email address of the person.", examples=["alice@atkins.com"])
-    additional_type: Optional[str] = Field(
+    email: str | None = Field(None, description="The email address of the person.", examples=["alice@atkins.com"])
+    additional_type: str | None = Field(
         None,
         alias="additionalType",
         description=(
@@ -365,7 +365,7 @@ class FolderReference(BaseModel):
         description="Browser-friendly link to the folder.",
         examples=["https://coda.io/docs?folderId=fl-1Ab234"],
     )
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None,
         description="Name of the folder; included if the user has access to the folder.",
         examples=["My docs"],
@@ -390,7 +390,7 @@ class WorkspaceReference(BaseModel):
         ...,
         description="The type of this resource.",
     )
-    organization_id: Optional[str] = Field(
+    organization_id: str | None = Field(
         None,
         alias="organizationId",
         description="ID of the organization bound to this workspace, if any.",
@@ -402,7 +402,7 @@ class WorkspaceReference(BaseModel):
         description="Browser-friendly link to the Coda workspace.",
         examples=["https://coda.io/docs?workspaceId=ws-1Ab234"],
     )
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None,
         description="Name of the workspace; included if the user has access to the workspace.",
         examples=["My workspace"],

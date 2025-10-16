@@ -1,6 +1,6 @@
 """Doc-related MCP tools for Coda API."""
 
-from typing import Any, Dict
+from typing import Any
 
 from ..client import CodaClient, clean_params
 from ..models import (
@@ -15,7 +15,7 @@ from ..models import (
 )
 
 
-async def whoami(client: CodaClient) -> Dict[str, Any]:
+async def whoami(client: CodaClient) -> dict[str, Any]:
     """Get information about the current authenticated user.
 
     Returns:
